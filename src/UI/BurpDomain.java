@@ -107,9 +107,13 @@ public class BurpDomain extends JPanel {
         int project = JOptionPane.showConfirmDialog(null,nP,"",JOptionPane.OK_CANCEL_OPTION);
         if(project==0 && BurpExtender.db.isConnect){
             String currentProject = nP.itemList.getSelectedValue();
-            BurpExtender.config.put("currentProject", currentProject);
-            Config.writeJson(BurpExtender.config);
-            projectDoneAction(currentProject);
+            if(nP.list.contains(currentProject)){
+                BurpExtender.config.put("currentProject", currentProject);
+                Config.writeJson(BurpExtender.config);
+                projectDoneAction(currentProject);
+            }else{
+                JOptionPane.showMessageDialog(null,"Must select a project!","No Project",JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
 
@@ -290,16 +294,6 @@ public class BurpDomain extends JPanel {
                 subDomainTable.setAutoCreateRowSorter(true);
                 subDomainTable.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
                 scrollPane2.setViewportView(subDomainTable);
-                String[] subDomainColumnNames = {"#", "Domain", "IP", "Time"};
-                subDomainModel = new DefaultTableModel(null, subDomainColumnNames){
-                    @Override
-                    public Class<?> getColumnClass(int column) { return getValueAt(0,column).getClass();}
-                };
-                subDomainTable.setModel(subDomainModel);
-                subDomainTable.getColumnModel().getColumn(0).setPreferredWidth(50);
-                subDomainTable.getColumnModel().getColumn(1).setPreferredWidth(385);
-                subDomainTable.getColumnModel().getColumn(2).setPreferredWidth(160);
-                subDomainTable.getColumnModel().getColumn(3).setPreferredWidth(160);
             }
             panel1.add(scrollPane2, new GridBagConstraints(0, 1, 1, 1, 0.0, 0.0,
                 GridBagConstraints.CENTER, GridBagConstraints.BOTH,
@@ -307,20 +301,12 @@ public class BurpDomain extends JPanel {
 
             //======== scrollPane3 ========
             {
+
+                //---- urlTable ----
                 urlTable.setModel(new DefaultTableModel());
-                urlTable.setSurrendersFocusOnKeystroke(true);
-                urlTable.setAutoCreateRowSorter(true);
                 urlTable.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
+                urlTable.setSurrendersFocusOnKeystroke(true);
                 scrollPane3.setViewportView(urlTable);
-                String[] urlColumnNames = {"#", "URL", "Time"};
-                urlModel = new DefaultTableModel(null, urlColumnNames){
-                    @Override
-                    public Class<?> getColumnClass(int column) { return getValueAt(0,column).getClass();}
-                };
-                urlTable.setModel(urlModel);
-                urlTable.getColumnModel().getColumn(0).setPreferredWidth(30);
-                urlTable.getColumnModel().getColumn(1).setPreferredWidth(750);
-                urlTable.getColumnModel().getColumn(2).setPreferredWidth(100);
             }
             panel1.add(scrollPane3, new GridBagConstraints(1, 1, 1, 1, 0.0, 0.0,
                 GridBagConstraints.CENTER, GridBagConstraints.BOTH,
@@ -330,6 +316,25 @@ public class BurpDomain extends JPanel {
             GridBagConstraints.CENTER, GridBagConstraints.BOTH,
             new Insets(0, 0, 0, 0), 0, 0));
         // JFormDesigner - End of component initialization  //GEN-END:initComponents
+        String[] subDomainColumnNames = {"#", "Domain", "IP", "Time"};
+        subDomainModel = new DefaultTableModel(null, subDomainColumnNames){
+            @Override
+            public Class<?> getColumnClass(int column) { return getValueAt(0,column).getClass();}
+        };
+        subDomainTable.setModel(subDomainModel);
+        subDomainTable.getColumnModel().getColumn(0).setPreferredWidth(50);
+        subDomainTable.getColumnModel().getColumn(1).setPreferredWidth(385);
+        subDomainTable.getColumnModel().getColumn(2).setPreferredWidth(160);
+        subDomainTable.getColumnModel().getColumn(3).setPreferredWidth(160);
+        String[] urlColumnNames = {"#", "URL", "Time"};
+        urlModel = new DefaultTableModel(null, urlColumnNames){
+            @Override
+            public Class<?> getColumnClass(int column) { return getValueAt(0,column).getClass();}
+        };
+        urlTable.setModel(urlModel);
+        urlTable.getColumnModel().getColumn(0).setPreferredWidth(30);
+        urlTable.getColumnModel().getColumn(1).setPreferredWidth(690);
+        urlTable.getColumnModel().getColumn(2).setPreferredWidth(160);
     }
     public static void addSubDomainToUI(String domain, String ip, String time){
         subDomainModel.addRow(new Object[]{BurpExtender.subDomainCount, domain, ip, time});
@@ -447,8 +452,8 @@ public class BurpDomain extends JPanel {
     private JLabel label7;
     private JScrollPane scrollPane2;
     private JTable subDomainTable;
-    private JTable urlTable;
     private JScrollPane scrollPane3;
+    private JTable urlTable;
     // JFormDesigner - End of variables declaration  //GEN-END:variables
     private static DefaultTableModel subDomainModel;
     private static DefaultTableModel urlModel;
