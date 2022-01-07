@@ -2,7 +2,6 @@ package Domain;
 
 import UI.BurpDomain;
 import burp.BurpExtender;
-import org.graalvm.compiler.bytecode.BridgeMethodUtils;
 
 import java.security.SecureRandom;
 import java.sql.SQLException;
