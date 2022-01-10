@@ -29,7 +29,7 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener{
     public static HashSet<String> currentRootDomainSet = new HashSet<>();
     public static HashMap<String,String> config = Config.initDatabaseSetting;
     public static DomainConsumer domainConsumer = new DomainConsumer();
-    public static final String VERSION = "1.0.1";
+    public static final String VERSION = "1.0.2";
     public static final String EXTENSION_NAME = "BurpDomain";
     @Override
     public void registerExtenderCallbacks(IBurpExtenderCallbacks callbacks){
