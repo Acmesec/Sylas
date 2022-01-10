@@ -98,7 +98,6 @@ public class BurpDomain extends JPanel {
                 connectDatabaseButton.setText("Status: Connect Failed");
             }
         }
-
     }
 
     private void projectSettingActionPerformed(ActionEvent e) {
@@ -316,26 +315,21 @@ public class BurpDomain extends JPanel {
             GridBagConstraints.CENTER, GridBagConstraints.BOTH,
             new Insets(0, 0, 0, 0), 0, 0));
         // JFormDesigner - End of component initialization  //GEN-END:initComponents
-        String[] subDomainColumnNames = {"#", "Domain", "IP", "Time"};
         subDomainModel = new DefaultTableModel(null, subDomainColumnNames){
             @Override
             public Class<?> getColumnClass(int column) { return getValueAt(0,column).getClass();}
         };
         subDomainTable.setModel(subDomainModel);
-        subDomainTable.getColumnModel().getColumn(0).setPreferredWidth(50);
-        subDomainTable.getColumnModel().getColumn(1).setPreferredWidth(385);
-        subDomainTable.getColumnModel().getColumn(2).setPreferredWidth(160);
-        subDomainTable.getColumnModel().getColumn(3).setPreferredWidth(160);
-        String[] urlColumnNames = {"#", "URL", "Time"};
+
         urlModel = new DefaultTableModel(null, urlColumnNames){
             @Override
             public Class<?> getColumnClass(int column) { return getValueAt(0,column).getClass();}
         };
         urlTable.setModel(urlModel);
-        urlTable.getColumnModel().getColumn(0).setPreferredWidth(30);
-        urlTable.getColumnModel().getColumn(1).setPreferredWidth(690);
-        urlTable.getColumnModel().getColumn(2).setPreferredWidth(160);
+
+        resizeColumnWidth();
     }
+
     public static void addSubDomainToUI(String domain, String ip, String time){
         subDomainModel.addRow(new Object[]{BurpExtender.subDomainCount, domain, ip, time});
     }
@@ -344,34 +338,31 @@ public class BurpDomain extends JPanel {
         urlModel.addRow(new Object[]{BurpExtender.urlCount, url, time});
     }
 
+    // 2022年01月10日21:02:25 修复了排序数据后切换项目插件UI崩溃的情况
     public void clearUI(){
-        BurpExtender.subDomainCount = 0;
-        subDomainModel.setRowCount(0);
-        BurpExtender.urlCount = 0;
-        urlModel.setRowCount(0);
-    }
-    //自适应宽度
-    public void resizeColumnWidth(JTable table) {
-        final TableColumnModel columnModel = table.getColumnModel();
-        for (int column = 0; column < table.getColumnCount(); column++) {
-            // 最小宽度
-            int width = 15;
-            if (column == 0){
-                columnModel.getColumn(column).setPreferredWidth(1);
-            }else{
-                for (int row = 0; row < table.getRowCount(); row++) {
-                    TableCellRenderer renderer = table.getCellRenderer(row, column);
-                    Component comp = table.prepareRenderer(renderer, row, column);
-                    width = Math.max(comp.getPreferredSize().width +1 , width);
-                }
-                if(width > 400) {
-                    width=400;
-                }
-                columnModel.getColumn(column).setPreferredWidth(width);
-            }
-
+        if(BurpExtender.subDomainCount > 0){
+            BurpExtender.subDomainCount = 0;
+            subDomainModel.setColumnIdentifiers(subDomainColumnNames);
         }
+        if(BurpExtender.urlCount > 0){
+            BurpExtender.urlCount = 0;
+            urlModel.setColumnIdentifiers(urlColumnNames);
+        }
+        resizeColumnWidth();
     }
+
+    //自适应宽度
+    private void resizeColumnWidth() {
+        subDomainTable.getColumnModel().getColumn(0).setPreferredWidth(50);
+        subDomainTable.getColumnModel().getColumn(1).setPreferredWidth(385);
+        subDomainTable.getColumnModel().getColumn(2).setPreferredWidth(160);
+        subDomainTable.getColumnModel().getColumn(3).setPreferredWidth(160);
+
+        urlTable.getColumnModel().getColumn(0).setPreferredWidth(30);
+        urlTable.getColumnModel().getColumn(1).setPreferredWidth(690);
+        urlTable.getColumnModel().getColumn(2).setPreferredWidth(160);
+    }
+
     public boolean autoConnectDatabaseByConfig(){
         if(Config.isBuild()){
             try{
@@ -401,11 +392,6 @@ public class BurpDomain extends JPanel {
         projectSetting.setEnabled(true);
         if(!"".equals(currentProject)){
             clearUI();
-            try{
-                sleep(1000);
-            }catch (InterruptedException e){
-                BurpExtender.getStderr().println(e);
-            }
             label2.setText(currentProject);
             rootDomainSetting.setEnabled(true);
             BurpExtender.currentRootDomainSet = BurpExtender.db.getRootDomainSet(currentProject);
@@ -457,4 +443,7 @@ public class BurpDomain extends JPanel {
     // JFormDesigner - End of variables declaration  //GEN-END:variables
     private static DefaultTableModel subDomainModel;
     private static DefaultTableModel urlModel;
+    private static final String[] subDomainColumnNames = {"#", "Domain", "IP", "Time"};
+    private static final String[] urlColumnNames = {"#", "URL", "Time"};
+
 }

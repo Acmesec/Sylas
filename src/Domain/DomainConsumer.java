@@ -5,6 +5,8 @@ import burp.BurpExtender;
 
 import java.security.SecureRandom;
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 
 //负责将收集的域名信息写入数据库
 public class DomainConsumer extends Thread {
@@ -15,7 +17,6 @@ public class DomainConsumer extends Thread {
         while(true){
             try {
                 QueueToResult();
-                SecureRandom random = new SecureRandom();
                 sleep(1000);
             } catch (Exception error) {
                 error.printStackTrace(BurpExtender.getStderr());

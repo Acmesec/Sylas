@@ -28,6 +28,7 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener{
     public static DBUtil db;
     public static HashSet<String> currentRootDomainSet = new HashSet<>();
     public static HashMap<String,String> config = Config.initDatabaseSetting;
+    public static DomainConsumer domainConsumer = new DomainConsumer();
     public static final String VERSION = "1.0.1";
     public static final String EXTENSION_NAME = "BurpDomain";
     @Override
@@ -46,7 +47,6 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener{
         callbacks.registerHttpListener(this);
         callbacks.addSuiteTab(this);
         //  消费者抓取域名入库 sleep=10s
-        DomainConsumer domainConsumer = new DomainConsumer();
         domainConsumer.start();
     }
 
