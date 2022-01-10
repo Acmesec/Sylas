@@ -288,7 +288,11 @@ public class BurpDomain extends JPanel {
             {
 
                 //---- subDomainTable ----
-                subDomainTable.setModel(new DefaultTableModel());
+                subDomainModel = new DefaultTableModel(null, subDomainColumnNames){
+                    @Override
+                    public Class<?> getColumnClass(int column) { return getValueAt(0,column).getClass();}
+                };
+                subDomainTable.setModel(subDomainModel);
                 subDomainTable.setSurrendersFocusOnKeystroke(true);
                 subDomainTable.setAutoCreateRowSorter(true);
                 subDomainTable.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
@@ -302,9 +306,14 @@ public class BurpDomain extends JPanel {
             {
 
                 //---- urlTable ----
-                urlTable.setModel(new DefaultTableModel());
-                urlTable.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
+                urlModel = new DefaultTableModel(null, urlColumnNames){
+                    @Override
+                    public Class<?> getColumnClass(int column) { return getValueAt(0,column).getClass();}
+                };
+                urlTable.setModel(urlModel);
                 urlTable.setSurrendersFocusOnKeystroke(true);
+                urlTable.setAutoCreateRowSorter(true);
+                urlTable.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
                 scrollPane3.setViewportView(urlTable);
             }
             panel1.add(scrollPane3, new GridBagConstraints(1, 1, 1, 1, 0.0, 0.0,
@@ -315,18 +324,6 @@ public class BurpDomain extends JPanel {
             GridBagConstraints.CENTER, GridBagConstraints.BOTH,
             new Insets(0, 0, 0, 0), 0, 0));
         // JFormDesigner - End of component initialization  //GEN-END:initComponents
-        subDomainModel = new DefaultTableModel(null, subDomainColumnNames){
-            @Override
-            public Class<?> getColumnClass(int column) { return getValueAt(0,column).getClass();}
-        };
-        subDomainTable.setModel(subDomainModel);
-
-        urlModel = new DefaultTableModel(null, urlColumnNames){
-            @Override
-            public Class<?> getColumnClass(int column) { return getValueAt(0,column).getClass();}
-        };
-        urlTable.setModel(urlModel);
-
         resizeColumnWidth();
     }
 
@@ -343,10 +340,12 @@ public class BurpDomain extends JPanel {
         if(BurpExtender.subDomainCount > 0){
             BurpExtender.subDomainCount = 0;
             subDomainModel.setColumnIdentifiers(subDomainColumnNames);
+            subDomainModel.setRowCount(0);
         }
         if(BurpExtender.urlCount > 0){
             BurpExtender.urlCount = 0;
             urlModel.setColumnIdentifiers(urlColumnNames);
+            urlModel.setRowCount(0);
         }
         resizeColumnWidth();
     }
@@ -358,8 +357,8 @@ public class BurpDomain extends JPanel {
         subDomainTable.getColumnModel().getColumn(2).setPreferredWidth(160);
         subDomainTable.getColumnModel().getColumn(3).setPreferredWidth(160);
 
-        urlTable.getColumnModel().getColumn(0).setPreferredWidth(30);
-        urlTable.getColumnModel().getColumn(1).setPreferredWidth(690);
+        urlTable.getColumnModel().getColumn(0).setPreferredWidth(50);
+        urlTable.getColumnModel().getColumn(1).setPreferredWidth(650);
         urlTable.getColumnModel().getColumn(2).setPreferredWidth(160);
     }
 
