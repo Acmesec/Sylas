@@ -132,7 +132,6 @@ public class DBUtil {
                 conn.createStatement().executeLargeUpdate(sql);
             }
         }catch (SQLException e) {
-            BurpExtender.getStdout().println("is init");
             BurpExtender.getStderr().println(e);
         }
     }
@@ -183,7 +182,6 @@ public class DBUtil {
                 tables.remove(table);
             }
             for (String sql:tables.values()){
-                BurpExtender.getStdout().println(sql);
                 conn.createStatement().execute(sql);
             }
         }catch (SQLException e) {
