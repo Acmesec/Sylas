@@ -8,6 +8,8 @@ import Domain.DomainProducer;
 import Utils.Config;
 import burp.BurpExtender;
 import burp.IHttpRequestResponse;
+import Utils.DBUtil;
+import jdk.internal.joptsimple.internal.Strings;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -69,16 +71,19 @@ public class BurpDomain extends JPanel {
         ControlSwitch conSwitch = new ControlSwitch();
         int connect = JOptionPane.showConfirmDialog(null,conSwitch,"Connect Database",JOptionPane.OK_CANCEL_OPTION);
         if (connect==0){
+            int chose = conSwitch.dbServerComboBox.getSelectedIndex();
+            String dbServer = ControlSwitch.DB_SERVER[chose];
             String host = conSwitch.hostTextField.getText();
             String port = conSwitch.portTextField.getText();
             String username = conSwitch.usernameTextField.getText();
             String passwd = conSwitch.passwdTextField.getText();
             String database = conSwitch.databaseTextField.getText();
-            BurpExtender.db.setConn(host,port,username,passwd,database);
+            switchDatabaseServer(chose,host,port,username,passwd,database);
             if(BurpExtender.db.isConnect){
                 connectDatabaseButton.setText("Status: Connected");
                 connectDatabaseButton.setEnabled(false);
                 closeConnectButton.setEnabled(true);
+//                searchButton.setEnabled(true);
                 BurpExtender.db.init(database);
                 if (!Config.burpDomainConfig.exists()){
                     try {
@@ -87,6 +92,7 @@ public class BurpDomain extends JPanel {
                         BurpExtender.getStderr().println(e2);
                     }
                 }
+                BurpExtender.config.put("db_server",dbServer);
                 BurpExtender.config.put("host",host);
                 BurpExtender.config.put("port",port);
                 BurpExtender.config.put("username",username);
@@ -311,9 +317,9 @@ public class BurpDomain extends JPanel {
                     public Class<?> getColumnClass(int column) { return getValueAt(0,column).getClass();}
                 };
                 urlTable.setModel(urlModel);
+                urlTable.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
                 urlTable.setSurrendersFocusOnKeystroke(true);
                 urlTable.setAutoCreateRowSorter(true);
-                urlTable.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
                 scrollPane3.setViewportView(urlTable);
             }
             panel1.add(scrollPane3, new GridBagConstraints(1, 1, 1, 1, 0.0, 0.0,
@@ -362,16 +368,35 @@ public class BurpDomain extends JPanel {
         urlTable.getColumnModel().getColumn(2).setPreferredWidth(160);
     }
 
+    /**
+     * 切换数据库服务
+     * @param chose 选择
+     * @param arg 数据库配置信息
+     */
+    private void switchDatabaseServer(int chose, String... arg){
+        BurpExtender.db.switchConn(chose);
+        switch (chose){
+            case DBUtil.MYSQL_DB:
+                BurpExtender.db.setConn(arg[0], arg[1], arg[2], arg[3], arg[4]);
+                break;
+            case DBUtil.SQLITE_DB:
+                BurpExtender.db.setConn();
+                break;
+            default:
+                break;
+        }
+    }
     public boolean autoConnectDatabaseByConfig(){
         if(Config.isBuild()){
             try{
-                if(!"".equals(BurpExtender.config.get("host"))){
+                if(!"".equals(BurpExtender.config.get("db_server"))){
+                    int chose = Arrays.binarySearch(ControlSwitch.DB_SERVER,BurpExtender.config.get("db_server"));
                     String host = BurpExtender.config.get("host");
                     String port = BurpExtender.config.get("port");
                     String username = BurpExtender.config.get("username");
                     String password = BurpExtender.config.get("password");
                     String database = BurpExtender.config.get("database");
-                    BurpExtender.db.setConn(host, port, username, password, database);
+                    switchDatabaseServer(chose,host,port,username,password,database);
                     if(BurpExtender.db.isConnect){
                         connectDatabaseButton.setEnabled(false);
                         connectDatabaseButton.setText("Status: Connected");
@@ -390,23 +415,25 @@ public class BurpDomain extends JPanel {
     public void projectDoneAction(String currentProject){
         projectSetting.setEnabled(true);
         if(!"".equals(currentProject)){
-            clearUI();
-            label2.setText(currentProject);
-            rootDomainSetting.setEnabled(true);
-            BurpExtender.currentRootDomainSet = BurpExtender.db.getRootDomainSet(currentProject);
-            if(BurpExtender.currentRootDomainSet.size() > 0){
-                searchButton.setEnabled(true);
-                BurpExtender.subDomainMap = BurpExtender.db.getSubDomainMap(currentProject);
-                BurpExtender.urlMap = BurpExtender.db.getUrlMap(currentProject);
-                for(Map.Entry<String, String> entry: BurpExtender.urlMap.entrySet()){
-                    BurpExtender.urlCount += 1;
-                    String createTime = entry.getValue();
-                    addURLToUI(entry.getKey(), createTime);
-                }
-                for(Map.Entry<String, HashMap<String, String>> entry: BurpExtender.subDomainMap.entrySet()){
-                    BurpExtender.subDomainCount += 1;
-                    HashMap<String, String> value = entry.getValue();
-                    addSubDomainToUI(entry.getKey(), value.get("ipAddress"), value.get("createTime"));
+            if(BurpExtender.db.projectExist(currentProject)){
+                clearUI();
+                label2.setText(currentProject);
+                rootDomainSetting.setEnabled(true);
+                BurpExtender.currentRootDomainSet = BurpExtender.db.getRootDomainSet(currentProject);
+                if(BurpExtender.currentRootDomainSet.size() > 0){
+                    searchButton.setEnabled(true);
+                    BurpExtender.subDomainMap = BurpExtender.db.getSubDomainMap(currentProject);
+                    BurpExtender.urlMap = BurpExtender.db.getUrlMap(currentProject);
+                    for(Map.Entry<String, String> entry: BurpExtender.urlMap.entrySet()){
+                        BurpExtender.urlCount += 1;
+                        String createTime = entry.getValue();
+                        addURLToUI(entry.getKey(), createTime);
+                    }
+                    for(Map.Entry<String, HashMap<String, String>> entry: BurpExtender.subDomainMap.entrySet()){
+                        BurpExtender.subDomainCount += 1;
+                        HashMap<String, String> value = entry.getValue();
+                        addSubDomainToUI(entry.getKey(), value.get("ipAddress"), value.get("createTime"));
+                    }
                 }
             }
         }

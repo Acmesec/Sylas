@@ -20,7 +20,8 @@ public class Config {
      * 配置文件
      */
     public static File burpDomainConfig = new File("burpDomain_setting.json");
-    public static HashMap<String, String> initDatabaseSetting = new HashMap<String, String>(5){{
+    public static HashMap<String, String> initDatabaseSetting = new HashMap<String, String>(6){{
+        put("db_server","");
         put("host","");
         put("port","");
         put("username","");
@@ -62,21 +63,6 @@ public class Config {
             writer.flush();
         }catch (IOException e){
             e.printStackTrace();
-        }
-    }
-
-    public static void main(String[] args) {
-        try{
-            URL u = new URL("https://portal.huaxincem.com:8383");
-            System.out.println(u.getProtocol());
-            System.out.println(u.getHost());
-            String port = u.getPort() == -1 ? String.valueOf(u.getDefaultPort()) : String.valueOf(u.getPort());
-            System.out.println(u.getPath());
-            System.out.println("".equals(u.getPath()) ? "/" : u.getPath());
-            System.out.println("Host: bpm.corpautohome.com".substring(5));
-
-        }catch (Exception e){
-
         }
     }
 }

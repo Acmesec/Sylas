@@ -19,6 +19,18 @@ import static java.lang.Thread.sleep;
  * @author linchen
  */
 public class DBUtil {
+    public DBUtil(int mode){
+        this.mode = mode;
+    }
+    public int mode;
+    /**
+     * 使用Mysql
+     */
+    public static final int MYSQL_DB = 0;
+    /**
+     * 使用Sqlite
+     */
+    public static final int SQLITE_DB = 1;
     /**
      * 数据库连接状态
      */
@@ -28,10 +40,17 @@ public class DBUtil {
      */
     public Connection conn = null;
     /**
+     * 切换数据库
+     */
+    public void switchConn(int mode){
+        this.mode = mode;
+        closeConn();
+        setConn();
+    }
+    /**
      * 连接数据库
      * */
     public void setConn(String host, String port, String username, String password, String database) {
-//        isConnect = false;
         String jdbcUrl = String.format("jdbc:mysql://%s:%s/%s?useServerPrepStmts=true", host, port,
                 database);
         try {
@@ -39,6 +58,16 @@ public class DBUtil {
             conn = DriverManager.getConnection(jdbcUrl, username, password);
             isConnect = true;
         } catch (SQLException | ClassNotFoundException e) {
+            BurpExtender.getStderr().println(e);
+            e.printStackTrace();
+        }
+    }
+    public void setConn(){
+        try {
+            Class.forName("org.sqlite.JDBC");
+            conn = DriverManager.getConnection("JDBC:sqlite:BurpDomain.db");
+            isConnect = true;
+        } catch (Exception e) {
             BurpExtender.getStderr().println(e);
             e.printStackTrace();
         }
@@ -53,7 +82,12 @@ public class DBUtil {
             isConnect = false;
         }
     }
-    public void init(String db){
+
+    /**
+     * 初始化mysql数据库
+     * @param db
+     */
+    private void initMysql(String db){
         HashMap<String, String> tables = new HashMap<String, String>(4){
             {
                 put("Project","CREATE TABLE `Project` (\n" +
@@ -98,16 +132,108 @@ public class DBUtil {
                 conn.createStatement().executeLargeUpdate(sql);
             }
         }catch (SQLException e) {
+            BurpExtender.getStdout().println("is init");
             BurpExtender.getStderr().println(e);
         }
     }
 
+    /**
+     * 初始化Sqlite数据库
+     * @param db
+     */
+    private void initSqlite(String db){
+        HashMap<String, String> tables = new HashMap<String, String>(4){
+            {
+                put("Project","CREATE TABLE \"main\".\"Project\" (\n" +
+                        "  \"id\" integer NOT NULL,\n" +
+                        "  \"projectName\" TEXT,\n" +
+                        "  CONSTRAINT \"id\" PRIMARY KEY (\"id\")\n" +
+                        "  CONSTRAINT \"Project_projectName_uindex\" UNIQUE (\"projectName\")"+
+                        ");");
+                put("RootDomain","CREATE TABLE \"main\".\"RootDomain\" (\n" +
+                        "  \"id\" integer NOT NULL,\n" +
+                        "  \"rootDomainName\" TEXT,\n" +
+                        "  \"projectName\" TEXT,\n" +
+                        "  CONSTRAINT \"id\" PRIMARY KEY (\"id\")\n" +
+                        "  CONSTRAINT \"RootDomain_projectName_uindex\" UNIQUE (\"rootDomainName\")"+
+                        ");");
+                put("SubDomain","CREATE TABLE \"main\".\"SubDomain\" (\n" +
+                        "  \"id\" integer NOT NULL,\n" +
+                        "  \"subDomainName\" TEXT,\n" +
+                        "  \"rootDomainName\" TEXT,\n" +
+                        "  \"ipAddress\" TEXT,\n" +
+                        "  \"createTime\" TEXT,\n" +
+                        "  CONSTRAINT \"id\" PRIMARY KEY (\"id\")\n" +
+                        "  CONSTRAINT \"SubDomain_projectName_uindex\" UNIQUE (\"subDomainName\")"+
+                        ");");
+                put("Url","CREATE TABLE \"main\".\"Url\" (\n" +
+                        "  \"id\" integer NOT NULL,\n" +
+                        "  \"url\" TEXT,\n" +
+                        "  \"projectName\" TEXT,\n" +
+                        "  \"createTime\" TEXT,\n" +
+                        "  CONSTRAINT \"id\" PRIMARY KEY (\"id\")\n" +
+                        "  CONSTRAINT \"Url_projectName_uindex\" UNIQUE (\"url\")"+
+                        ");");
+            }
+        };
+        try{
+            ResultSet set = conn.getMetaData().getTables(db,null,"%",null);
+            while (set.next()){
+                String table = set.getString("TABLE_NAME");
+                tables.remove(table);
+            }
+            for (String sql:tables.values()){
+                BurpExtender.getStdout().println(sql);
+                conn.createStatement().execute(sql);
+            }
+        }catch (SQLException e) {
+            BurpExtender.getStderr().println(e);
+        }
+    }
+    public void init(String db){
+        switch (mode){
+            case MYSQL_DB:
+                initMysql(db);
+                break;
+            case SQLITE_DB:
+                initSqlite(db);
+                break;
+            default:
+                break;
+        }
 
+    }
+    public Boolean projectExist(String project){
+        String sql = "select count(id) as project from Project where projectName = ?";
+        try{
+            PreparedStatement psSQL = conn.prepareStatement(sql);
+            psSQL.setString(1,project);
+            ResultSet set = psSQL.executeQuery();
+            int projectCount = 0;
+            while (set.next()){
+                projectCount = set.getInt("project");
+            }
+            return projectCount != 0;
+        }catch (SQLException e){
+            BurpExtender.getStderr().println(e);
+        }
+        return false;
+    }
     /**
      * 对RootDomain表插入数据
      */
     public void insertData(String rootDomainName,String projectName){
-        String sql = "insert ignore into Project (rootDomainName,projectName) values (?,?)";
+        String sql = null;
+        switch (mode){
+            case MYSQL_DB:
+                sql = "insert ignore into Project (rootDomainName,projectName) values (?,?)";
+                break;
+            case SQLITE_DB:
+                sql = "insert or ignore into Project ([rootDomainName],[projectName]) values (?,?)";
+                break;
+            default:
+                break;
+        }
         try {
             PreparedStatement psSQL = conn.prepareStatement(sql);
             psSQL.setString(1,rootDomainName);
@@ -119,7 +245,17 @@ public class DBUtil {
     }
 
     public void insertSubDomainQueueToDb(BlockingQueue<String> queue) {
-        String sql = "insert ignore into SubDomain (subDomainName,rootDomainName,ipAddress,createTime) values (?,?,?,?)";
+        String sql = null;
+        switch (mode){
+            case MYSQL_DB:
+                sql = "insert ignore into SubDomain (subDomainName,rootDomainName,ipAddress,createTime) values (?,?,?,?)";
+                break;
+            case SQLITE_DB:
+                sql = "insert or ignore into SubDomain ([subDomainName],[rootDomainName],[ipAddress],[createTime]) values (?,?,?,?)";
+                break;
+            default:
+                break;
+        }
         try {
             PreparedStatement psSQL = conn.prepareStatement(sql);
         while (!queue.isEmpty()){
@@ -151,7 +287,17 @@ public class DBUtil {
     }
 
     public void insertUrlQueueToDb(BlockingQueue<String> queue){
-        String sql = "insert ignore into Url (url, createTime, projectName) values (?,?,?)";
+        String sql = null;
+        switch (mode){
+            case MYSQL_DB:
+                sql = "insert ignore into Url (url, createTime, projectName) values (?,?,?)";
+                break;
+            case SQLITE_DB:
+                sql = "insert or ignore into Url ([url], [createTime], [projectName]) values (?,?,?)";
+                break;
+            default:
+                break;
+        }
         String currentProject = BurpExtender.config.get("currentProject");
         try{
             PreparedStatement pSQL = conn.prepareStatement(sql);
@@ -187,7 +333,17 @@ public class DBUtil {
     }
 
     public void addProject(String projectName){
-        String sql = "insert ignore into Project (projectName) values (?)";
+        String sql = null;
+        switch (mode){
+            case MYSQL_DB:
+                sql = "insert ignore into Project (projectName) values (?)";
+                break;
+            case SQLITE_DB:
+                sql = "insert or ignore into Project ([projectName]) values (?)";
+                break;
+            default:
+                break;
+        }
         try{
             PreparedStatement preSQl = conn.prepareStatement(sql);
             preSQl.setString(1, projectName);
@@ -208,7 +364,17 @@ public class DBUtil {
     }
 
     public void  addRootDomain(String projectName, String domainName){
-        String sql = "insert ignore into RootDomain (projectName,rootDomainName) values (?,?)";
+        String sql = null;
+        switch (mode){
+            case MYSQL_DB:
+                sql = "insert ignore into RootDomain (projectName,rootDomainName) values (?,?)";
+                break;
+            case SQLITE_DB:
+                sql = "insert or ignore into RootDomain ([projectName],[rootDomainName]) values (?,?)";
+                break;
+            default:
+                break;
+        }
         try{
             PreparedStatement preSQl = conn.prepareStatement(sql);
             preSQl.setString(1, projectName);
@@ -220,7 +386,7 @@ public class DBUtil {
     }
 
     public void removeRootDomain(String projectName,String domainName){
-        String sql = "delete from RootDomain where projectName = ? and domainName = ?";
+        String sql = "delete from RootDomain where projectName = ? and rootDomainName = ?";
         try{
             PreparedStatement preSQl = conn.prepareStatement(sql);
             preSQl.setString(1, projectName);
