@@ -1,4 +1,4 @@
-package Utils;
+package utils;
 
 import burp.BurpExtender;
 import com.google.gson.Gson;
@@ -7,7 +7,6 @@ import com.google.gson.reflect.TypeToken;
 
 import java.io.*;
 import java.net.InetAddress;
-import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.HashMap;
 

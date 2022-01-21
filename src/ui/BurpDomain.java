@@ -2,14 +2,13 @@
  * Created by JFormDesigner on Sun Jan 02 20:49:48 CST 2022
  */
 
-package UI;
+package ui;
 
-import Domain.DomainProducer;
-import Utils.Config;
+import domain.DomainProducer;
+import utils.Config;
 import burp.BurpExtender;
 import burp.IHttpRequestResponse;
-import Utils.DBUtil;
-import jdk.internal.joptsimple.internal.Strings;
+import utils.DBUtil;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -31,7 +30,11 @@ public class BurpDomain extends JPanel {
         initBurpDomain();
     }
 
-    public Map<String, String> runSearch() throws InterruptedException {
+    /**
+     * 创建10个线程进行域名的提取
+     * @throws InterruptedException
+     */
+    public void runSearch() throws InterruptedException {
         IHttpRequestResponse[] messages = BurpExtender.getCallbacks().getSiteMap(null);
         BurpExtender.inputQueue.addAll(Arrays.asList(messages));
         for (int i = 0; i < 10; i++) {
@@ -41,7 +44,6 @@ public class BurpDomain extends JPanel {
         while(!BurpExtender.inputQueue.isEmpty()){
             sleep(1000);
         }
-        return null;
     }
 
     private void searchButtonActionPerformed(ActionEvent e) {
@@ -50,7 +52,8 @@ public class BurpDomain extends JPanel {
             @Override
             protected Map doInBackground() throws Exception{
                 searchButton.setEnabled(false);
-                return runSearch();
+                runSearch();
+                return null;
             }
             @Override
             protected void done(){
@@ -83,7 +86,6 @@ public class BurpDomain extends JPanel {
                 connectDatabaseButton.setText("Status: Connected");
                 connectDatabaseButton.setEnabled(false);
                 closeConnectButton.setEnabled(true);
-//                searchButton.setEnabled(true);
                 BurpExtender.db.init(database);
                 if (!Config.burpDomainConfig.exists()){
                     try {
@@ -163,6 +165,7 @@ public class BurpDomain extends JPanel {
         label5 = new JLabel();
         copyAllUrlsButton = new JButton();
         copyAllDomainsButton = new JButton();
+        tabbedPane1 = new JTabbedPane();
         panel1 = new JPanel();
         label6 = new JLabel();
         label7 = new JLabel();
@@ -170,6 +173,13 @@ public class BurpDomain extends JPanel {
         subDomainTable = new JTable();
         scrollPane3 = new JScrollPane();
         urlTable = new JTable();
+        panel3 = new JPanel();
+        label4 = new JLabel();
+        label9 = new JLabel();
+        scrollPane1 = new JScrollPane();
+        similarSubDomainTable = new JTable();
+        scrollPane4 = new JScrollPane();
+        similarUrlsTable = new JTable();
 
         //======== this ========
         setLayout(new GridBagLayout());
@@ -270,67 +280,131 @@ public class BurpDomain extends JPanel {
             GridBagConstraints.CENTER, GridBagConstraints.BOTH,
             new Insets(10, 0, 5, 0), 0, 0));
 
-        //======== panel1 ========
+        //======== tabbedPane1 ========
         {
-            panel1.setLayout(new GridBagLayout());
-            ((GridBagLayout)panel1.getLayout()).columnWidths = new int[] {0, 0, 0};
-            ((GridBagLayout)panel1.getLayout()).rowHeights = new int[] {0, 0, 0};
-            ((GridBagLayout)panel1.getLayout()).columnWeights = new double[] {0.35, 0.65, 1.0E-4};
-            ((GridBagLayout)panel1.getLayout()).rowWeights = new double[] {0.0, 1.0, 1.0E-4};
 
-            //---- label6 ----
-            label6.setText("Sub Domians");
-            panel1.add(label6, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
-                GridBagConstraints.CENTER, GridBagConstraints.VERTICAL,
-                new Insets(0, 0, 5, 5), 0, 0));
-
-            //---- label7 ----
-            label7.setText("Urls");
-            panel1.add(label7, new GridBagConstraints(1, 0, 1, 1, 0.0, 0.0,
-                GridBagConstraints.CENTER, GridBagConstraints.VERTICAL,
-                new Insets(0, 0, 5, 0), 0, 0));
-
-            //======== scrollPane2 ========
+            //======== panel1 ========
             {
+                panel1.setLayout(new GridBagLayout());
+                ((GridBagLayout)panel1.getLayout()).columnWidths = new int[] {0, 0, 0};
+                ((GridBagLayout)panel1.getLayout()).rowHeights = new int[] {0, 0, 0};
+                ((GridBagLayout)panel1.getLayout()).columnWeights = new double[] {0.35, 0.65, 1.0E-4};
+                ((GridBagLayout)panel1.getLayout()).rowWeights = new double[] {0.0, 1.0, 1.0E-4};
 
-                //---- subDomainTable ----
-                subDomainModel = new DefaultTableModel(null, subDomainColumnNames){
-                    @Override
-                    public Class<?> getColumnClass(int column) { return getValueAt(0,column).getClass();}
-                };
-                subDomainTable.setModel(subDomainModel);
-                subDomainTable.setSurrendersFocusOnKeystroke(true);
-                subDomainTable.setAutoCreateRowSorter(true);
-                subDomainTable.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
-                scrollPane2.setViewportView(subDomainTable);
+                //---- label6 ----
+                label6.setText("Sub Domians");
+                panel1.add(label6, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
+                    GridBagConstraints.CENTER, GridBagConstraints.VERTICAL,
+                    new Insets(0, 0, 5, 5), 0, 0));
+
+                //---- label7 ----
+                label7.setText("Urls");
+                panel1.add(label7, new GridBagConstraints(1, 0, 1, 1, 0.0, 0.0,
+                    GridBagConstraints.CENTER, GridBagConstraints.VERTICAL,
+                    new Insets(0, 0, 5, 0), 0, 0));
+
+                //======== scrollPane2 ========
+                {
+
+                    //---- subDomainTable ----
+                    subDomainModel = new DefaultTableModel(null, subDomainColumnNames){
+                        @Override
+                        public Class<?> getColumnClass(int column) { return getValueAt(0,column).getClass();}
+                    };
+                    subDomainTable.setModel(subDomainModel);
+                    subDomainTable.setSurrendersFocusOnKeystroke(true);
+                    subDomainTable.setAutoCreateRowSorter(true);
+                    subDomainTable.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
+                    scrollPane2.setViewportView(subDomainTable);
+                }
+                panel1.add(scrollPane2, new GridBagConstraints(0, 1, 1, 1, 0.0, 0.0,
+                    GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+                    new Insets(0, 0, 0, 5), 0, 0));
+
+                //======== scrollPane3 ========
+                {
+
+                    //---- urlTable ----
+                    urlModel = new DefaultTableModel(null, urlColumnNames){
+                        @Override
+                        public Class<?> getColumnClass(int column) { return getValueAt(0,column).getClass();}
+                    };
+                    urlTable.setModel(urlModel);
+                    urlTable.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
+                    urlTable.setSurrendersFocusOnKeystroke(true);
+                    urlTable.setAutoCreateRowSorter(true);
+                    scrollPane3.setViewportView(urlTable);
+                }
+                panel1.add(scrollPane3, new GridBagConstraints(1, 1, 1, 1, 0.0, 0.0,
+                    GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+                    new Insets(0, 0, 0, 0), 0, 0));
             }
-            panel1.add(scrollPane2, new GridBagConstraints(0, 1, 1, 1, 0.0, 0.0,
-                GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-                new Insets(0, 0, 0, 5), 0, 0));
+            tabbedPane1.addTab("Exact Match", panel1);
 
-            //======== scrollPane3 ========
+            //======== panel3 ========
             {
+                panel3.setLayout(new GridBagLayout());
+                ((GridBagLayout)panel3.getLayout()).columnWidths = new int[] {0, 0, 0};
+                ((GridBagLayout)panel3.getLayout()).rowHeights = new int[] {0, 0, 0};
+                ((GridBagLayout)panel3.getLayout()).columnWeights = new double[] {0.35, 0.65, 1.0E-4};
+                ((GridBagLayout)panel3.getLayout()).rowWeights = new double[] {0.0, 1.0, 1.0E-4};
 
-                //---- urlTable ----
-                urlModel = new DefaultTableModel(null, urlColumnNames){
-                    @Override
-                    public Class<?> getColumnClass(int column) { return getValueAt(0,column).getClass();}
-                };
-                urlTable.setModel(urlModel);
-                urlTable.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
-                urlTable.setSurrendersFocusOnKeystroke(true);
-                urlTable.setAutoCreateRowSorter(true);
-                scrollPane3.setViewportView(urlTable);
+                //---- label4 ----
+                label4.setText("Similar Sub Domain");
+                panel3.add(label4, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
+                    GridBagConstraints.CENTER, GridBagConstraints.VERTICAL,
+                    new Insets(0, 0, 5, 5), 0, 0));
+
+                //---- label9 ----
+                label9.setText("Similar Urls");
+                panel3.add(label9, new GridBagConstraints(1, 0, 1, 1, 0.0, 0.0,
+                    GridBagConstraints.CENTER, GridBagConstraints.VERTICAL,
+                    new Insets(0, 0, 5, 0), 0, 0));
+
+                //======== scrollPane1 ========
+                {
+
+                    //---- similarSubDomainTable ----
+                    similarSubDomainModel = new DefaultTableModel(null, subDomainColumnNames){
+                        @Override
+                        public Class<?> getColumnClass(int column) { return getValueAt(0,column).getClass();}
+                    };
+                    similarSubDomainTable.setModel(similarSubDomainModel);
+                    similarSubDomainTable.setSurrendersFocusOnKeystroke(true);
+                    similarSubDomainTable.setAutoCreateRowSorter(true);
+                    similarSubDomainTable.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
+                    scrollPane1.setViewportView(similarSubDomainTable);
+                }
+                panel3.add(scrollPane1, new GridBagConstraints(0, 1, 1, 1, 0.0, 0.0,
+                    GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+                    new Insets(0, 0, 0, 5), 0, 0));
+
+                //======== scrollPane4 ========
+                {
+
+                    //---- similarUrlsTable ----
+                    similarUrlModel = new DefaultTableModel(null, urlColumnNames){
+                        @Override
+                        public Class<?> getColumnClass(int column) { return getValueAt(0,column).getClass();}
+                    };
+                    similarUrlsTable.setModel(similarUrlModel);
+                    similarUrlsTable.setSurrendersFocusOnKeystroke(true);
+                    similarUrlsTable.setAutoCreateRowSorter(true);
+                    similarUrlsTable.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
+                    scrollPane4.setViewportView(similarUrlsTable);
+                }
+                panel3.add(scrollPane4, new GridBagConstraints(1, 1, 1, 1, 0.0, 0.0,
+                    GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+                    new Insets(0, 0, 0, 0), 0, 0));
             }
-            panel1.add(scrollPane3, new GridBagConstraints(1, 1, 1, 1, 0.0, 0.0,
-                GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-                new Insets(0, 0, 0, 0), 0, 0));
+            tabbedPane1.addTab("Similar Matching", panel3);
         }
-        add(panel1, new GridBagConstraints(0, 1, 1, 1, 0.0, 0.0,
+        add(tabbedPane1, new GridBagConstraints(0, 1, 1, 1, 0.0, 0.0,
             GridBagConstraints.CENTER, GridBagConstraints.BOTH,
             new Insets(0, 0, 0, 0), 0, 0));
         // JFormDesigner - End of component initialization  //GEN-END:initComponents
-        resizeColumnWidth();
+        resizeColumnWidth(subDomainTable,urlTable);
+        resizeColumnWidth(similarSubDomainTable,similarUrlsTable);
     }
 
     public static void addSubDomainToUI(String domain, String ip, String time){
@@ -339,6 +413,13 @@ public class BurpDomain extends JPanel {
 
     public static void addURLToUI(String url, String time){
         urlModel.addRow(new Object[]{BurpExtender.urlCount, url, time});
+    }
+    public static void addSimilarSubDomainToUI(String domain, String ip, String time){
+        similarSubDomainModel.addRow(new Object[]{BurpExtender.similarSubDomainCount, domain, ip, time});
+    }
+    public static void addSimilarUrlToUI(String url, String time){
+
+        similarUrlModel.addRow(new Object[]{BurpExtender.similarUrlCount, url, time});
     }
 
     // 2022年01月10日21:02:25 修复了排序数据后切换项目插件UI崩溃的情况
@@ -353,15 +434,28 @@ public class BurpDomain extends JPanel {
             urlModel.setColumnIdentifiers(urlColumnNames);
             urlModel.setRowCount(0);
         }
-        resizeColumnWidth();
+        if (BurpExtender.similarSubDomainCount > 0){
+            BurpExtender.similarSubDomainCount = 0;
+            similarSubDomainModel.setColumnIdentifiers(subDomainColumnNames);
+            similarSubDomainModel.setRowCount(0);
+        }
+        if (BurpExtender.similarUrlCount > 0){
+            BurpExtender.similarUrlCount = 0;
+            similarUrlModel.setColumnIdentifiers(urlColumnNames);
+            similarUrlModel.setRowCount(0);
+        }
+        resizeColumnWidth(subDomainTable,urlTable);
+        resizeColumnWidth(similarSubDomainTable,similarUrlsTable);
     }
 
-    //自适应宽度
-    private void resizeColumnWidth() {
-        subDomainTable.getColumnModel().getColumn(0).setPreferredWidth(50);
-        subDomainTable.getColumnModel().getColumn(1).setPreferredWidth(385);
-        subDomainTable.getColumnModel().getColumn(2).setPreferredWidth(160);
-        subDomainTable.getColumnModel().getColumn(3).setPreferredWidth(160);
+    /**
+     * 自适应宽度
+     */
+    private void resizeColumnWidth(JTable domainTable,JTable urlTable){
+        domainTable.getColumnModel().getColumn(0).setPreferredWidth(50);
+        domainTable.getColumnModel().getColumn(1).setPreferredWidth(385);
+        domainTable.getColumnModel().getColumn(2).setPreferredWidth(160);
+        domainTable.getColumnModel().getColumn(3).setPreferredWidth(160);
 
         urlTable.getColumnModel().getColumn(0).setPreferredWidth(50);
         urlTable.getColumnModel().getColumn(1).setPreferredWidth(650);
@@ -424,15 +518,27 @@ public class BurpDomain extends JPanel {
                     searchButton.setEnabled(true);
                     BurpExtender.subDomainMap = BurpExtender.db.getSubDomainMap(currentProject);
                     BurpExtender.urlMap = BurpExtender.db.getUrlMap(currentProject);
+                    BurpExtender.similarSubDomainMap = BurpExtender.db.getSimilarSubDomainMap(currentProject);
+                    BurpExtender.similarUrlMap = BurpExtender.db.getSimilarUrlMap(currentProject);
                     for(Map.Entry<String, String> entry: BurpExtender.urlMap.entrySet()){
                         BurpExtender.urlCount += 1;
                         String createTime = entry.getValue();
                         addURLToUI(entry.getKey(), createTime);
                     }
+                    for(Map.Entry<String, String> entry: BurpExtender.similarUrlMap.entrySet()){
+                        BurpExtender.similarUrlCount += 1;
+                        String createTime = entry.getValue();
+                        addSimilarUrlToUI(entry.getKey(), createTime);
+                    }
                     for(Map.Entry<String, HashMap<String, String>> entry: BurpExtender.subDomainMap.entrySet()){
                         BurpExtender.subDomainCount += 1;
                         HashMap<String, String> value = entry.getValue();
                         addSubDomainToUI(entry.getKey(), value.get("ipAddress"), value.get("createTime"));
+                    }
+                    for(Map.Entry<String, HashMap<String, String>> entry: BurpExtender.similarSubDomainMap.entrySet()){
+                        BurpExtender.similarSubDomainCount += 1;
+                        HashMap<String, String> value = entry.getValue();
+                        addSimilarSubDomainToUI(entry.getKey(), value.get("ipAddress"), value.get("createTime"));
                     }
                 }
             }
@@ -459,6 +565,7 @@ public class BurpDomain extends JPanel {
     private JLabel label5;
     private JButton copyAllUrlsButton;
     private JButton copyAllDomainsButton;
+    private JTabbedPane tabbedPane1;
     private JPanel panel1;
     private JLabel label6;
     private JLabel label7;
@@ -466,10 +573,19 @@ public class BurpDomain extends JPanel {
     private JTable subDomainTable;
     private JScrollPane scrollPane3;
     private JTable urlTable;
+    private JPanel panel3;
+    private JLabel label4;
+    private JLabel label9;
+    private JScrollPane scrollPane1;
+    private JTable similarSubDomainTable;
+    private JScrollPane scrollPane4;
+    private JTable similarUrlsTable;
     // JFormDesigner - End of variables declaration  //GEN-END:variables
     private static DefaultTableModel subDomainModel;
     private static DefaultTableModel urlModel;
-    private static final String[] subDomainColumnNames = {"#", "Domain", "IP", "Time"};
+    private static DefaultTableModel similarSubDomainModel;
+    private static DefaultTableModel similarUrlModel;
+    private static final String[] subDomainColumnNames = {"#", "domain", "IP", "Time"};
     private static final String[] urlColumnNames = {"#", "URL", "Time"};
 
 }

@@ -1,8 +1,9 @@
-package Utils;
+package utils;
 
 import java.sql.*;
 
-import UI.BurpDomain;
+import domain.DomainProducer;
+import ui.BurpDomain;
 import burp.BurpExtender;
 import com.google.common.base.Joiner;
 
@@ -88,14 +89,16 @@ public class DBUtil {
      * @param db
      */
     private void initMysql(String db){
-        HashMap<String, String> tables = new HashMap<String, String>(4){
+        HashMap<String, String> tables = new HashMap<String, String>(6){
             {
+                //项目表
                 put("Project","CREATE TABLE `Project` (\n" +
                         "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
                         "  `projectName` varchar(64) NOT NULL,\n" +
                         "  PRIMARY KEY (`id`),\n" +
                         "  UNIQUE KEY `Project_projectName_uindex` (`projectName`)\n" +
                         ");");
+                //根域名表
                 put("RootDomain","CREATE TABLE `RootDomain` (\n" +
                         "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
                         "  `rootDomainName` varchar(64) NOT NULL,\n" +
@@ -103,6 +106,7 @@ public class DBUtil {
                         "  PRIMARY KEY (`id`),\n" +
                         "  UNIQUE KEY `RootDomain_domainName_uindex` (`rootDomainName`)\n" +
                         ");");
+                //子域名表
                 put("SubDomain","CREATE TABLE `SubDomain` (\n" +
                         "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
                         "  `subDomainName` varchar(128) NOT NULL,\n" +
@@ -112,13 +116,33 @@ public class DBUtil {
                         "  PRIMARY KEY (`id`),\n" +
                         "  UNIQUE KEY `SubDomain_subDomainName_uindex` (`subDomainName`)\n" +
                         ");");
+                //url表
                 put("Url","CREATE TABLE `Url` (\n" +
                         "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
                         "  `url` varchar(256) NOT NULL,\n" +
                         "  `projectName` varchar(64) NOT NULL,\n" +
                         "  `createTime` datetime NOT NULL,\n" +
                         "  PRIMARY KEY (`id`),\n" +
-                        "  UNIQUE KEY `SubDomain_subDomainName_uindex` (`url`)\n" +
+                        "  UNIQUE KEY `Url_url_uindex` (`url`)\n" +
+                        ");");
+                //相似域名表
+                put("SimilarSubDomain","CREATE TABLE `SimilarSubDomain`(\n" +
+                        "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
+                        "  `subDomainName` varchar(128) NOT NULL,\n" +
+                        "  `rootDomainName` varchar(64) DEFAULT NULL,\n" +
+                        "  `ipAddress` varchar(64) DEFAULT NULL,\n" +
+                        "  `createTime` datetime NOT NULL,\n" +
+                        "  PRIMARY KEY (`id`),\n" +
+                        "   UNIQUE KEY `SimilarSubDomain_similarDomainName_uindex` (`subDomainName`)\n" +
+                        ");");
+                //相似域名子域名表
+                put("SimilarUrl","CREATE TABLE `SimilarUrl`(\n" +
+                        "   `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
+                        "   `url` varchar(64) NOT NULL,\n" +
+                        "   `projectName` varchar(64) NOT NULL,\n" +
+                        "  `createTime` datetime NOT NULL,\n" +
+                        "   PRIMARY KEY (`id`),\n" +
+                        "   UNIQUE KEY `SimilarUrl_url_uindex` (`url`)\n" +
                         ");");
             }
         };
@@ -172,6 +196,23 @@ public class DBUtil {
                         "  \"createTime\" TEXT,\n" +
                         "  CONSTRAINT \"id\" PRIMARY KEY (\"id\")\n" +
                         "  CONSTRAINT \"Url_projectName_uindex\" UNIQUE (\"url\")"+
+                        ");");
+                put("SimilarSubDomain","CREATE TABLE \"main\".\"SimilarSubDomain\" (\n" +
+                        "  \"id\" integer NOT NULL,\n" +
+                        "  \"SubDomainName\" TEXT,\n" +
+                        "  \"rootDomainName\" TEXT,\n" +
+                        "  \"ipAddress\" TEXT,\n" +
+                        "  \"createTime\" TEXT,\n" +
+                        "  CONSTRAINT \"id\" PRIMARY KEY (\"id\")\n" +
+                        "  CONSTRAINT \"SimilarSubDomain_projectName_uindex\" UNIQUE (\"SubDomainName\")"+
+                        ");");
+                put("SimilarUrl","CREATE TABLE \"main\".\"SimilarUrl\" (\n" +
+                        "  \"id\" integer NOT NULL,\n" +
+                        "  \"url\" TEXT,\n" +
+                        "  \"projectName\" TEXT,\n" +
+                        "  \"createTime\" TEXT,\n" +
+                        "  CONSTRAINT \"id\" PRIMARY KEY (\"id\")\n" +
+                        "  CONSTRAINT \"SimilarUrl_projectName_uindex\" UNIQUE (\"url\")"+
                         ");");
             }
         };
@@ -242,6 +283,10 @@ public class DBUtil {
         }
     }
 
+    /**
+     * 往数据库增加子域名
+     * @param queue
+     */
     public void insertSubDomainQueueToDb(BlockingQueue<String> queue) {
         String sql = null;
         switch (mode){
@@ -275,9 +320,52 @@ public class DBUtil {
             psSQL.setString(2, getRootDomain(subDomain));
             psSQL.setString(3, ip);
             psSQL.setString(4, data.get("time"));
-            // BurpExtender.subDomainMap.get(subDomain).put("status", "1");
             psSQL.addBatch();
         }
+            psSQL.executeBatch();
+        } catch (Exception e) {
+            BurpExtender.getStderr().println(e);
+        }
+    }
+
+    /**
+     * 插入相似域名的信息
+     * @param queue
+     */
+    public void insertSimilarSubDomainQueueToDb(BlockingQueue<String> queue) {
+        String sql = null;
+        switch (mode){
+            case MYSQL_DB:
+                sql = "insert ignore into SimilarSubDomain (subDomainName,rootDomainName,ipAddress,createTime) values (?,?,?,?)";
+                break;
+            case SQLITE_DB:
+                sql = "insert or ignore into SimilarSubDomain ([subDomainName],[rootDomainName],[ipAddress],[createTime]) values (?,?,?,?)";
+                break;
+            default:
+                break;
+        }
+        try {
+            PreparedStatement psSQL = conn.prepareStatement(sql);
+            while (!queue.isEmpty()){
+                String subDomain = queue.take();
+                HashMap<String, String> data = BurpExtender.similarSubDomainMap.get(subDomain);
+                if(data==null){
+                    continue;
+                }
+                String ip = data.get("ipAddress");
+                if(ip==null) {
+                    // 用后台的线程去获取IP，防止DNS延迟造成burp流量堵塞
+                    ip = Config.getDomainIp(subDomain);
+                    BurpExtender.similarSubDomainMap.get(subDomain).put("ipAddress", ip);
+                }
+                BurpExtender.similarSubDomainCount += 1;
+                BurpDomain.addSimilarSubDomainToUI(subDomain, ip, data.get("time"));
+                psSQL.setString(1, subDomain);
+                psSQL.setString(2, getSimilarRootDomain(subDomain));
+                psSQL.setString(3, ip);
+                psSQL.setString(4, data.get("time"));
+                psSQL.addBatch();
+            }
             psSQL.executeBatch();
         } catch (Exception e) {
             BurpExtender.getStderr().println(e);
@@ -318,8 +406,42 @@ public class DBUtil {
         }
     }
 
+    public void insertSimilarUrlQueueToDb(BlockingQueue<String> queue){
+        String sql = null;
+        switch (mode){
+            case MYSQL_DB:
+                sql = "insert ignore into SimilarUrl (url, createTime, projectName) values (?,?,?)";
+                break;
+            case SQLITE_DB:
+                sql = "insert or ignore into SimilarUrl ([url], [createTime], [projectName]) values (?,?,?)";
+                break;
+            default:
+                break;
+        }
+        String currentProject = BurpExtender.config.get("currentProject");
+        try{
+            PreparedStatement pSQL = conn.prepareStatement(sql);
+            while(!queue.isEmpty()){
+                String url = queue.take();
+                String createTime = BurpExtender.similarUrlMap.get(url);
+                if(createTime==null){
+                    continue;
+                }
+                BurpExtender.similarUrlCount += 1;
+                BurpDomain.addSimilarUrlToUI(url, createTime);
+                pSQL.setString(1, url);
+                pSQL.setString(2, createTime);
+                pSQL.setString(3, currentProject);
+                pSQL.addBatch();
+            }
+            pSQL.executeBatch();
+        }catch (Exception e){
+            BurpExtender.getStderr().println(e);
+        }
+    }
+
     /**
-     *
+     * 获取根域名
      * @param subDomain
      * @return
      * (用了新的正则后，这个问题解决了)这里有BUG，目前的正则会匹配到-elis-ecocdn.pingan.com.cn这样错误的域名，然后调用Google这个API就会抛异常
@@ -330,6 +452,21 @@ public class DBUtil {
         return tmpDomain[tmpDomain.length-1]+"."+suffix;
     }
 
+    /**
+     *
+     */
+    private String getSimilarRootDomain(String subDomain){
+        for (String s:BurpExtender.currentRootDomainSet){
+            if(DomainProducer.isSimilarSubDomain(subDomain)){
+                return s;
+            }
+        }
+        return null;
+    }
+    /**
+     * 创建项目
+     * @param projectName
+     */
     public void addProject(String projectName){
         String sql = null;
         switch (mode){
@@ -350,6 +487,11 @@ public class DBUtil {
             e.printStackTrace();
         }
     }
+
+    /**
+     * 删除项目
+     * @param projectName
+     */
     public void removeProject(String projectName){
         String sql = "DELETE FROM Project WHERE projectName = ?;";
         try{
@@ -361,6 +503,11 @@ public class DBUtil {
         }
     }
 
+    /**
+     * 添加根域名
+     * @param projectName
+     * @param domainName
+     */
     public void  addRootDomain(String projectName, String domainName){
         String sql = null;
         switch (mode){
@@ -383,6 +530,11 @@ public class DBUtil {
         }
     }
 
+    /**
+     * 删除根域名
+     * @param projectName
+     * @param domainName
+     */
     public void removeRootDomain(String projectName,String domainName){
         String sql = "delete from RootDomain where projectName = ? and rootDomainName = ?";
         try{
@@ -394,13 +546,17 @@ public class DBUtil {
             e.printStackTrace();
         }
     }
+
+    /**
+     * 获取项目的Set
+     * @return
+     */
     public HashSet<String> getProjectSet(){
         String sql = "select ProjectName from Project";
-        ResultSet set = null;
         HashSet<String> projectList = new HashSet<>();
         try {
             PreparedStatement preSQl = conn.prepareStatement(sql);
-            set = preSQl.executeQuery();
+            ResultSet set = preSQl.executeQuery();
             while(set.next()){
                 projectList.add(set.getString("ProjectName"));
             }
@@ -427,24 +583,6 @@ public class DBUtil {
         return rootDomainList;
     }
 
-    public HashMap<String, String> getUrlMap(String projectName){
-        HashMap<String, String> urlMap = new HashMap<>();
-        String sql = "select url, createTime from Url where projectName=?";
-        ResultSet set;
-        try{
-            PreparedStatement preSQL = conn.prepareStatement(sql);
-            preSQL.setString(1, projectName);
-            set = preSQL.executeQuery();
-            while(set.next()){
-                urlMap.put(set.getString("url"), set.getString("createTime"));
-            }
-        }catch (SQLException e){
-            BurpExtender.getStderr().println(e);
-        }
-        return urlMap;
-    }
-
-
     public HashMap<String, HashMap<String, String>> getSubDomainMap(String projectName){
         HashMap<String, HashMap<String, String>> subDomainMap = new HashMap<>();
         Object[] rootDomainList = getRootDomainSet(projectName).toArray();
@@ -469,6 +607,65 @@ public class DBUtil {
             BurpExtender.getStderr().println(e);
         }
         return subDomainMap;
+    }
+
+    public HashMap<String, HashMap<String, String>> getSimilarSubDomainMap(String projectName){
+        HashMap<String, HashMap<String, String>> subDomainMap = new HashMap<>();
+        Object[] rootDomainList = getRootDomainSet(projectName).toArray();
+        String[] inSql = new String[rootDomainList.length];
+        Arrays.fill(inSql, "?");
+        // 还是改回来了，不知道为啥，下面的那个方法取不到数据
+        String sql = "select subDomainName,rootDomainName,ipAddress,createTime from SimilarSubDomain where rootDomainName in ("+Joiner.on(",").join(inSql)+")";
+        try {
+            PreparedStatement preSQl = conn.prepareStatement(sql);
+            for (int i=0;i<rootDomainList.length;i++){
+                preSQl.setString(i+1, (String) rootDomainList[i]);
+            }
+            ResultSet set = preSQl.executeQuery();
+            while(set.next()){
+                HashMap<String, String> data = new HashMap<>();
+                data.put("ipAddress", set.getString("ipAddress"));
+                data.put("createTime", set.getString("createTime"));
+                data.put("status", "1");
+                subDomainMap.put(set.getString("subDomainName"), data);
+            }
+        } catch (SQLException e) {
+            BurpExtender.getStderr().println(e);
+        }
+        return subDomainMap;
+    }
+
+    public HashMap<String, String> getUrlMap(String projectName){
+        HashMap<String, String> urlMap = new HashMap<>();
+        String sql = "select url, createTime from Url where projectName=?";
+        ResultSet set;
+        try{
+            PreparedStatement preSQL = conn.prepareStatement(sql);
+            preSQL.setString(1, projectName);
+            set = preSQL.executeQuery();
+            while(set.next()){
+                urlMap.put(set.getString("url"), set.getString("createTime"));
+            }
+        }catch (SQLException e){
+            BurpExtender.getStderr().println(e);
+        }
+        return urlMap;
+    }
+    public HashMap<String, String> getSimilarUrlMap(String projectName){
+        HashMap<String, String> urlMap = new HashMap<>();
+        String sql = "select url, createTime from SimilarUrl where projectName=?";
+        ResultSet set;
+        try{
+            PreparedStatement preSQL = conn.prepareStatement(sql);
+            preSQL.setString(1, projectName);
+            set = preSQL.executeQuery();
+            while(set.next()){
+                urlMap.put(set.getString("url"), set.getString("createTime"));
+            }
+        }catch (SQLException e){
+            BurpExtender.getStderr().println(e);
+        }
+        return urlMap;
     }
 
 //    public HashMap<String, HashMap<String, String>> getSubDomainMap(String projectName){

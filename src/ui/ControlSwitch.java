@@ -1,11 +1,10 @@
-package UI;
+package ui;
 
 import java.awt.event.*;
-import Utils.Config;
-import Utils.DBUtil;
+import utils.Config;
+import utils.DBUtil;
 
 import java.awt.*;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
 import javax.swing.*;

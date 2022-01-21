@@ -18,6 +18,10 @@
 
 当使用burp代理时，会从经过burp的流量中抓取域名进行储存。不需要开启，插件启动以及数据库连接之后就会自动拉取。
 
+* 相似域名模糊匹配
+
+会对相似的域名进行匹配，符合正则的就拉取入库
+
 * 支持mysql/sqlite
 
 我们打算思考一下这个工具与后期其他工具的联动，故而默认选择了mysql作为数据库，根据鸭王的反馈，我们又添加了sqlite作为支持。
@@ -27,6 +31,8 @@
 ### TODO LIST
 
 - [x] 支持sqlite
+- [x] 相似域名模糊匹配
+- [ ] url的后缀名筛选
 - [ ] 由于仓促赶时间，所以当前的代码可读性是非常差的，会找个时间重构一下代码。
 
 ## 使用方法
@@ -59,7 +65,26 @@
 
 ![](img/passiveCollection.png)
 
-### 0x04 工具特点
+### 0x04 相似域名收集
+
+使用如下代码进行相似域名匹配，正则在其中。各位有更优秀的正则可以提交issue，届时我们采纳使用。感谢。
+
+```java
+for(String s:BurpExtender.currentRootDomainSet){
+  //思路：考虑将rootdomain进行切割，例如baidu.com使用切割成baidu com，然后对baidu进行相似度匹配
+  String[] tmp = s.split("\\.");
+  //通过切割的长度取需要匹配的部分，通过这个来避免当用户设置根域名为www.baidu.com的时候，会匹配成www,baidu的问题，目前直接取baidu,com
+  String similarRegex = String.format("((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)*(?!-)[A-Za-z0-9-]{0,63}%s[A-Za-z0-9-]{0,63}(?<!-)\\.%s",
+                                      tmp[tmp.length-2],tmp[tmp.length-1]);
+  Pattern similarPattern = Pattern.compile(similarRegex);
+  Matcher matcher = similarPattern.matcher(domain);
+  return matcher.find();
+}
+```
+
+![](img/similarDomain.png)
+
+### 0x05 工具特点
 
 根据字段排序功能可以快速筛选出内网IP、相似网段IP以及相似域名，可以根据这些信息自定义域名字典、爆破HOST等，进一步扩大信息收集范围
 

@@ -2,7 +2,7 @@
  * Created by JFormDesigner on Mon Jan 03 16:50:09 CST 2022
  */
 
-package UI;
+package ui;
 
 import burp.BurpExtender;
 

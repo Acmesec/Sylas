@@ -1,7 +1,6 @@
-package Domain;
+package domain;
 
-import UI.BurpDomain;
-import Utils.Config;
+import utils.Config;
 import org.apache.commons.text.StringEscapeUtils;
 import burp.*;
 
@@ -13,6 +12,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -77,6 +77,11 @@ public class DomainProducer extends Thread{
         return false;
     }
 
+    /**
+     * 对流量进行搜索分析
+     * @param message
+     * @param mode PASSIVE_MODE=0 被动搜索 ACTIVE_MODE=1 主动搜索
+     */
     public static void handleMessage(IHttpRequestResponse message, int mode){
         String reqUrl = helpers.analyzeRequest(message).getUrl().toString();
         List<String> headers = helpers.analyzeRequest(message).getHeaders();
@@ -101,11 +106,24 @@ public class DomainProducer extends Thread{
                 domains.addAll(respDomains);
                 urls.addAll(respUrls);
             }
-            for (String domain : domains) {handleDomain(domain, mode);}
-            for (String url : urls) { handleUrl(url);}
+            //对子域名以及网址进行搜索，如果一个for一次是不是有点笨呢？
+            for (String domain : domains) {
+                handleDomain(domain, mode);
+                //handleSimilarSubDomain(domain,mode);
+            }
+            for (String url : urls) {
+                handleUrl(url);
+
+            }
+            //在这个地方添加similarDomain
         }
     }
 
+    /**
+     * 提取子域名，如果是主动搜索还会提取ip信息
+     * @param domain 传入域名进行判断是否为子域名
+     * @param mode 判断是被动搜索还是主动搜索
+     */
     public static void handleDomain(String domain, int mode){
         if(isSubdomain(domain)){
             // subDomainQueue会定时清空，所有子域名会存在subDomainMap，所以还要加个判断
@@ -122,10 +140,62 @@ public class DomainProducer extends Thread{
                     data.put("ipAddress", ip);
                 }
             }
+        }else if(isSimilarSubDomain(domain)){
+            if(!BurpExtender.similarSubDomainQueue.contains(domain)&&!BurpExtender.similarSubDomainMap.containsKey(domain)&&!BurpExtender.currentRootDomainSet.contains(domain)){
+                BurpExtender.similarSubDomainQueue.add(domain);
+                HashMap<String, String> data = new HashMap<>();
+                BurpExtender.similarSubDomainMap.put(domain, data);
+                String time = getCurrentTime();
+                data.put("time", time);
+                if(mode == ACTIVE_MODE){
+                    String ip = Config.getDomainIp(domain);
+                    data.put("ipAddress", ip);
+                }
+//                BurpExtender.similarSubDomainMap.put(domain, data);
+            }
         }
     }
 
-    public static void  handleUrl(String url){
+//    /**
+//     * 提取相似域名(暂时没有这个需求，不要使用这个接口)
+//     * @param domain 传入域名进行判断是否为相似域名
+//     * @param mode
+//     * @deprecated
+//     */
+//    public static void handleSimilarDomain(String domain,int mode){
+//        if (isSimilarDomain(domain)){
+//            BurpExtender.rootSimilarDomainSet.add(domain);
+//        }
+//    }
+
+/*    *//**
+     *收集相似域名的子域名
+     * @param domain
+     * @param mode
+     *//*
+    public static void handleSimilarSubDomain(String domain,int mode){
+        if(isSimilarSubDomain(domain)){
+            // subDomainQueue会定时清空，所有子域名会存在subDomainMap，所以还要加个判断
+            if(!BurpExtender.similarSubDomainQueue.contains(domain)&&!BurpExtender.similarSubDomainMap.containsKey(domain)){
+                BurpExtender.similarSubDomainQueue.add(domain);
+                HashMap<String, String> data = new HashMap<>();
+                BurpExtender.similarSubDomainMap.put(domain, data);
+                String time = getCurrentTime();
+                data.put("time", time);
+                // 如果是主动搜索可以直接获取IP，即使DNS卡住也不会导致burp堵塞
+                // 通过流量被动收集，会定时获取IP，具体实现在DBUtil.insertSubDomainQueueToDb()中
+                if(mode == ACTIVE_MODE){
+                    String ip = Config.getDomainIp(domain);
+                    data.put("ipAddress", ip);
+                }
+            }
+        }
+    }*/
+    /**
+     * 提取关联网址
+     * @param url 传入url进行提取
+     */
+    public static void handleUrl(String url){
         try{
             URL u = new URL(url);
             String domain = u.getHost();
@@ -136,11 +206,19 @@ public class DomainProducer extends Thread{
                 String port = String.valueOf(u.getPort());
                 url = u.getProtocol() + "://" + u.getHost() + ":" + port + path;
             }
-            url = getFormatURL(url);
-            if(isSubdomain(domain) && !uselessExtension(path, USELESS_URL_EXTENSIONS)){
-                if(!BurpExtender.urlQueue.contains(url)&&!BurpExtender.urlMap.containsKey(url)){
-                    BurpExtender.urlQueue.add(url);
-                    BurpExtender.urlMap.put(url, getCurrentTime());
+            if (isSubdomain(domain)){
+                if(!uselessExtension(path, USELESS_URL_EXTENSIONS)){
+                    if(!BurpExtender.urlQueue.contains(url)&&!BurpExtender.urlMap.containsKey(url)){
+                        BurpExtender.urlQueue.add(url);
+                        BurpExtender.urlMap.put(url, getCurrentTime());
+                    }
+                }
+            }else if (isSimilarSubDomain(domain)&!BurpExtender.currentRootDomainSet.contains(domain)){
+                if(!uselessExtension(path, USELESS_URL_EXTENSIONS)){
+                    if(!BurpExtender.similarUrlQueue.contains(url)&&!BurpExtender.similarUrlMap.containsKey(url)){
+                        BurpExtender.similarUrlQueue.add(url);
+                        BurpExtender.similarUrlMap.put(url, getCurrentTime());
+                    }
                 }
             }
         }catch (Exception e){
@@ -148,14 +226,14 @@ public class DomainProducer extends Thread{
         }
     }
 
-    public static String getFormatURL(String url){
-        try{
-
-        }catch (Exception e){
-            BurpExtender.getStderr().println(url);
-        }
-        return url;
-    }
+//    public static String getFormatURL(String url){
+//        try{
+//
+//        }catch (Exception e){
+//            BurpExtender.getStderr().println(url);
+//        }
+//        return url;
+//    }
 
     public static String getCurrentTime(){
         SimpleDateFormat formatter= new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -163,7 +241,7 @@ public class DomainProducer extends Thread{
         return formatter.format(date);
     }
 
-    public static byte[] subByte(byte[] b,int srcPos,int length){
+    public static byte[] subByte(byte[] b, int srcPos, int length){
         byte[] b1 = new byte[length];
         System.arraycopy(b, srcPos, b1, 0, length);
         return b1;
@@ -216,7 +294,11 @@ public class DomainProducer extends Thread{
         return resp;
     }
 
-
+    /**
+     * 将流量传入到该函数进行解析提取域名
+     * @param httpResponse
+     * @return
+     */
     public static Set<String> grepDomain(String httpResponse) {
         Set<String> domains = new HashSet<>();
         Pattern pDomainNameOnly = Pattern.compile(DOMAIN_NAME_PATTERN);
@@ -258,6 +340,11 @@ public class DomainProducer extends Thread{
         return urls;
     }
 
+    /**
+     * 判断是否为子域名
+     * @param domain
+     * @return
+     */
     public static boolean isSubdomain(String domain){
         for (String s : BurpExtender.currentRootDomainSet) {
             if(domain.endsWith("."+s)){
@@ -267,6 +354,54 @@ public class DomainProducer extends Thread{
         return false;
     }
 
+//    /**
+//     * 判断是否为相似域名
+//     * @param domain
+//     * @return
+//     * @deprecated
+//     */
+//    public static boolean isSimilarDomain(String domain){
+//        for(String s:BurpExtender.currentRootDomainSet){
+//            //思路：考虑将rootdomain进行切割，例如baidu.com使用切割成baidu com，然后对baidu进行相似度匹配
+//            String[] tmp = s.split("\\.");
+//            //通过切割的长度取需要匹配的部分，通过这个来避免当用户设置根域名为www.baidu.com的时候，会匹配成www,baidu的问题，目前直接取baidu,com
+//            String similarRegex = String.format("(?!-)[A-Za-z0-9-]{0,63}%s[A-Za-z0-9-]{0,63}(?<!-).%s",tmp[tmp.length-2],tmp[tmp.length-1]);
+//            Pattern similarPattern = Pattern.compile(similarRegex);
+//            Matcher matcher = similarPattern.matcher(domain);
+//            return matcher.find();
+//        }
+//        return false;
+//    }
+
+    /**
+     * 判断是否为相似域名的子域名
+     * @param domain
+     * @return
+     */
+    public static boolean isSimilarSubDomain(String domain){
+        for(String s:BurpExtender.currentRootDomainSet){
+            //思路：考虑将rootdomain进行切割，例如baidu.com使用切割成baidu com，然后对baidu进行相似度匹配
+            String[] tmp = s.split("\\.");
+            //通过切割的长度取需要匹配的部分，通过这个来避免当用户设置根域名为www.baidu.com的时候，会匹配成www,baidu的问题，目前直接取baidu,com
+            String similarRegex = String.format("((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)*(?!-)[A-Za-z0-9-]{0,63}%s[A-Za-z0-9-]{0,63}(?<!-)\\.%s",
+                    tmp[tmp.length-2],tmp[tmp.length-1]);
+            Pattern similarPattern = Pattern.compile(similarRegex);
+            Matcher matcher = similarPattern.matcher(domain);
+            return matcher.find();
+        }
+//        for(String s:BurpExtender.rootSimilarDomainSet){
+//            if (similarDomain.endsWith("."+s)){
+//                return true;
+//            }
+//        }
+        return false;
+    }
+
+    /**
+     * 判断是否为url编码
+     * @param line
+     * @return
+     */
     public static boolean urlCode(String line) {
         String patternRule = "(%(\\p{XDigit}{2}))";
         Pattern pattern = Pattern.compile(patternRule);
@@ -274,6 +409,11 @@ public class DomainProducer extends Thread{
         return matcher.find();
     }
 
+    /**
+     * 判断是否为unicode
+     * @param line
+     * @return
+     */
     public static boolean unicodeCode(String line) {
         String patternRule = "(\\\\u(\\p{XDigit}{4}))";
         Pattern pattern = Pattern.compile(patternRule);
