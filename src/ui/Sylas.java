@@ -150,6 +150,10 @@ public class Sylas extends JPanel {
         connectDatabaseButton.setText("Connect Database");
     }
 
+    private void copyAllUrls(ActionEvent e) {
+        // TODO add your code here
+    }
+
 
     private void initComponents() {
         // JFormDesigner - Component initialization - DO NOT MODIFY  //GEN-BEGIN:initComponents
@@ -271,6 +275,7 @@ public class Sylas extends JPanel {
 
             //---- copyAllUrlsButton ----
             copyAllUrlsButton.setText("Copy all Urls");
+            copyAllUrlsButton.addActionListener(e -> copyAllUrls(e));
             panel2.add(copyAllUrlsButton, new GridBagConstraints(10, 0, 1, 1, 0.0, 0.0,
                 GridBagConstraints.CENTER, GridBagConstraints.BOTH,
                 new Insets(0, 0, 0, 5), 0, 0));

@@ -72,7 +72,7 @@ public class DbUtil {
             conn = DriverManager.getConnection(jdbcUrl, username, password);
             isConnect = true;
         } catch (SQLException | ClassNotFoundException e) {
-            BurpExtender.getStderr().println(e);
+            BurpExtender.getStderr().println("Mysql连接失败:"+e);
             e.printStackTrace();
         }
     }
@@ -82,7 +82,7 @@ public class DbUtil {
             conn = DriverManager.getConnection("JDBC:sqlite:Sylas.db");
             isConnect = true;
         } catch (Exception e) {
-            BurpExtender.getStderr().println(e);
+            BurpExtender.getStderr().println("Sqlite连接失败:"+e);
             e.printStackTrace();
         }
     }
@@ -179,7 +179,7 @@ public class DbUtil {
                 conn.createStatement().executeLargeUpdate(sql);
             }
         }catch (SQLException e) {
-            BurpExtender.getStderr().println(e);
+            BurpExtender.getStderr().println("Mysql初始化失败:"+e);
         }
     }
     /**
@@ -202,7 +202,7 @@ public class DbUtil {
                 createScanSql.execute();
             }
         } catch (SQLException e) {
-            BurpExtender.getStderr().println(e);
+            BurpExtender.getStderr().println("扫描scanned字段失败:"+e);
         }
     }
 
@@ -274,7 +274,7 @@ public class DbUtil {
                 conn.createStatement().execute(sql);
             }
         }catch (SQLException e) {
-            BurpExtender.getStderr().println(e);
+            BurpExtender.getStderr().println("Sqlite初始化失败"+e);
         }
     }
     public void init(String db){
@@ -302,7 +302,7 @@ public class DbUtil {
             }
             return projectCount != 0;
         }catch (SQLException e){
-            BurpExtender.getStderr().println(e);
+            BurpExtender.getStderr().println("查找不到project:"+e);
         }
         return false;
     }
@@ -372,7 +372,7 @@ public class DbUtil {
         }
             psSQL.executeBatch();
         } catch (Exception e) {
-            BurpExtender.getStderr().println(e);
+            BurpExtender.getStderr().println("子域名入库失败:"+e);
         }
     }
 
@@ -416,7 +416,7 @@ public class DbUtil {
             }
             psSQL.executeBatch();
         } catch (Exception e) {
-            BurpExtender.getStderr().println(e);
+            BurpExtender.getStderr().println("无法插入相似域名:"+e);
         }
     }
 
@@ -450,7 +450,7 @@ public class DbUtil {
             }
             pSQL.executeBatch();
         }catch (Exception e){
-            BurpExtender.getStderr().println(e);
+            BurpExtender.getStderr().println("无法添加url:"+e);
         }
     }
 
@@ -484,7 +484,7 @@ public class DbUtil {
             }
             pSQL.executeBatch();
         }catch (Exception e){
-            BurpExtender.getStderr().println(e);
+            BurpExtender.getStderr().println("无法添加相似url:"+e);
         }
     }
 
@@ -532,7 +532,7 @@ public class DbUtil {
             preSQl.setString(1, projectName);
             preSQl.execute();
         }catch (SQLException e){
-            e.printStackTrace();
+            BurpExtender.getStderr().println("无法创建项目:"+e);
         }
     }
 
@@ -547,7 +547,7 @@ public class DbUtil {
             preSQl.setString(1, projectName);
             preSQl.execute();
         }catch (SQLException e){
-            e.printStackTrace();
+            BurpExtender.getStderr().println("删除项目失败:"+e);
         }
     }
 
@@ -556,7 +556,7 @@ public class DbUtil {
      * @param projectName
      * @param domainName
      */
-    public void  addRootDomain(String projectName, String domainName){
+    public void addRootDomain(String projectName, String domainName){
         String sql = null;
         switch (mode){
             case MYSQL_DB:
@@ -574,7 +574,7 @@ public class DbUtil {
             preSQl.setString(2, domainName);
             preSQl.execute();
         }catch (SQLException e){
-            e.printStackTrace();
+            BurpExtender.getStderr().println("无法添加根域名:"+e);
         }
     }
 
@@ -626,7 +626,7 @@ public class DbUtil {
                 rootDomainList.add(set.getString("rootDomainName"));
             }
         } catch (SQLException e) {
-            BurpExtender.getStderr().println(e);
+            BurpExtender.getStderr().println("无法获取到根域名:"+e);
         }
         return rootDomainList;
     }
@@ -652,7 +652,7 @@ public class DbUtil {
                 subDomainMap.put(set.getString("subDomainName"), data);
             }
         } catch (SQLException e) {
-            BurpExtender.getStderr().println(e);
+            BurpExtender.getStderr().println("获取不到子域名"+e);
         }
         return subDomainMap;
     }
@@ -678,7 +678,7 @@ public class DbUtil {
                 subDomainMap.put(set.getString("subDomainName"), data);
             }
         } catch (SQLException e) {
-            BurpExtender.getStderr().println(e);
+            BurpExtender.getStderr().println("无法获取相似域名:"+e);
         }
         return subDomainMap;
     }
@@ -702,7 +702,7 @@ public class DbUtil {
                 subDomainAliveMap.put(set.getString("url"),data);
             }
         }catch (SQLException e){
-            BurpExtender.getStderr().println(e);
+            BurpExtender.getStderr().println("无法获取Bscan对域名的测活情况:"+e);
         }
         return subDomainAliveMap;
     }
@@ -726,7 +726,7 @@ public class DbUtil {
                 similarDomainAliveMap.put(set.getString("url"),data);
             }
         }catch (SQLException e){
-            BurpExtender.getStderr().println(e);
+            BurpExtender.getStderr().println("无法获取Bscan对相似域名的测活情况:"+e);
         }
         return similarDomainAliveMap;
     }
@@ -742,7 +742,7 @@ public class DbUtil {
                 urlMap.put(set.getString("url"), set.getString("createTime"));
             }
         }catch (SQLException e){
-            BurpExtender.getStderr().println(e);
+            BurpExtender.getStderr().println("无法获取url:"+e);
         }
         return urlMap;
     }
@@ -758,7 +758,7 @@ public class DbUtil {
                 urlMap.put(set.getString("url"), set.getString("createTime"));
             }
         }catch (SQLException e){
-            BurpExtender.getStderr().println(e);
+            BurpExtender.getStderr().println("无法获取相似url:"+e);
         }
         return urlMap;
     }
