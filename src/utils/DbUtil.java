@@ -44,7 +44,14 @@ public class DbUtil {
      * 数据库连接
      */
     public Connection conn = null;
+    /**
+     * 当前连接的库名
+     */
     public String database;
+    /**
+     * bscan是否已经创建相关表
+     */
+    public boolean bscanReady = false;
     /**
      * 切换数据库
      */
@@ -162,6 +169,10 @@ public class DbUtil {
             ResultSet set = conn.getMetaData().getTables(db,null,"%",null);
             while (set.next()){
                 String table = set.getString("TABLE_NAME");
+                if("SubDomainBscanAlive".equals(table)){
+                    this.bscanReady = true;
+                    BurpExtender.getStdout().println("Bscan ready");
+                }
                 tables.remove(table);
             }
             for (String sql:tables.values()){
@@ -171,7 +182,6 @@ public class DbUtil {
             BurpExtender.getStderr().println(e);
         }
     }
-
     /**
      * 此处是用来判断是否为旧版本插件，新版本需要在subdomain以及similarDomain中加入scan字段以支持
      * @param table
@@ -254,21 +264,6 @@ public class DbUtil {
             }
         };
         // 原先想要给sqlite增加检测url存活的功能，但是想了想实现有点麻烦。
-/*        //此处是用来判断是否为旧版本插件，新版本需要在subdomain中加入scan字段以支持
-        try {
-            PreparedStatement scanColumnNameCreateSql = conn.prepareStatement("select count(*) as iscreated from sqlite_master where name = 'SubDomain' and sql like '%scan%'");
-            ResultSet set = scanColumnNameCreateSql.executeQuery();
-            int isCreated = 0;
-            while (set.next()){
-                isCreated = set.getInt("iscreated");
-            }
-            if (isCreated == 0){
-                PreparedStatement createscanSql = conn.prepareStatement("alter table SubDomain add scan integer default 0 not null;");
-                createscanSql.execute();
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }*/
         try{
             ResultSet set = conn.getMetaData().getTables(db,null,"%",null);
             while (set.next()){

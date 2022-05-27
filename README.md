@@ -8,7 +8,7 @@
 
 ## 项目描述
 
-​	Sylas(塞拉斯)是我很喜欢的一款游戏《英雄联盟》(League of Legends)里的英雄。他在面板数值已经足够可观的情况下，其终极技能**其人之道**又能窃取其他英雄的大招为己用。我觉得塞拉斯很适合代表这个项目，我们在插件的基础功能开发完成之后，又再思考与其他项目联动的可能，尽可能地把我们手头上现有的idea跟这个项目联动融合，使Sylas成为战场上能独当一面的存在。——林晨[@0chencc](https://github.com/0chencc)
+​	Sylas(塞拉斯)是我很喜欢的一款游戏《英雄联盟》(League of Legends)里的英雄。他在面板数值已经足够可观的情况下，其终极技能**其人之道**又能窃取其他英雄的终极技能为己用。我觉得塞拉斯很适合代表这个项目，我们在插件的基础功能开发完成之后，又再思考与其他项目联动的可能，尽可能地把我们手头上现有的idea跟这个项目联动融合，使Sylas成为战场上能独当一面的存在。——林晨[@0chencc](https://github.com/0chencc)
 
 ![](img/Sylas.jpeg)
 
@@ -109,8 +109,48 @@ for(String s:BurpExtender.currentRootDomainSet){
 
 ### 0x06 与Bscan的联动
 
+#### Sylas配置
+
+需要将配置数据库的方式修改为Mysql，按照图示进行填写配置。
+
+![img](img/MyslqSetting.png)
+
+在Sylas以及Bscan都配置完毕后该功能就会启用。
+
+在配置完毕Bscan之后，需要重新连接一次Mysql数据库。查看Burp-Extender有无打印出Bscan Ready字符串，如果打印则该功能已启用。
+
+![](img/bscanReady.png)
+
 这项功能只在配置了Bscan以及Mysql的用户才可以体验。目前仅支持批量网站测活，效果如下。
 
 ![](img/BscanDomainAliveCheck.png)
 
 需要在[Bscan](https://github.com/broken5/bscan/tree/sylas)的配置文件里配置塞拉斯的数据库信息，随后按照readme中的方法启动即可。
+
+#### Bscan配置
+
+##### 0x00 初始化
+
+```shell
+./bscanSylas
+```
+![](img/bscanConfigure_1.png)
+
+执行这条命令之后会报错且生成配置文件
+
+##### 0x01 修改Config.yml文件
+
+打开生成的Config.yml文件
+
+在sylas字段里修改关于塞拉斯数据库的配置。
+
+![](img/bscanConfigure_2.png)
+
+##### 0x02 启动
+直接以nohup去启动本程序，程序会在启动时在数据库中自动创建需要的表名
+```shell
+nohup ./bscanSylas &
+```
+随后程序将在每1分钟自动拉取塞拉斯数据库，进行扫描之后将扫描结果储存在数据库中，以供塞拉斯去拉取。
+
+在最新的版本中，我们新增了与Bscan的联动，也在后续寻找跟其他工具结合的可能。Bscan一直没有开源的原因只是B哥觉得代码写得有点丑，不过这次我们在分支上进行代码开源，更强的Bscan得等下个月忙完才能更新了。

@@ -503,17 +503,19 @@ public class Sylas extends JPanel {
                 }
                 // 判断连接模式，为MYSQL时才可以用这个功能
                 if(BurpExtender.db.mode == DbUtil.MYSQL_DB){
-                    BurpExtender.subDomainBscanAliveMap = BurpExtender.db.getSubDomainAlive(currentProject);
-                    BurpExtender.similarSubDomainBscanAliveMap = BurpExtender.db.getSimilarSubDomainAlive(currentProject);
-                    for(Map.Entry<String, HashMap<String, String>> entry: BurpExtender.subDomainBscanAliveMap.entrySet()){
-                        BurpExtender.subDomainBscanAliveCount += 1;
-                        HashMap<String, String> value = entry.getValue();
-                        addAliveDomainToUI(entry.getKey(), value.get("title"),value.get("status"),value.get("rootDomain"));
-                    }
-                    for(Map.Entry<String, HashMap<String, String>> entry: BurpExtender.similarSubDomainBscanAliveMap.entrySet()){
-                        BurpExtender.similarSubDomainBscanAliveCount += 1;
-                        HashMap<String, String> value = entry.getValue();
-                        addAliveSimilarDomainToUI(entry.getKey(), value.get("title"),value.get("status"),value.get("rootDomain"));
+                    if(BurpExtender.db.bscanReady){
+                        BurpExtender.subDomainBscanAliveMap = BurpExtender.db.getSubDomainAlive(currentProject);
+                        BurpExtender.similarSubDomainBscanAliveMap = BurpExtender.db.getSimilarSubDomainAlive(currentProject);
+                        for(Map.Entry<String, HashMap<String, String>> entry: BurpExtender.subDomainBscanAliveMap.entrySet()){
+                            BurpExtender.subDomainBscanAliveCount += 1;
+                            HashMap<String, String> value = entry.getValue();
+                            addAliveDomainToUI(entry.getKey(), value.get("title"),value.get("status"),value.get("rootDomain"));
+                        }
+                        for(Map.Entry<String, HashMap<String, String>> entry: BurpExtender.similarSubDomainBscanAliveMap.entrySet()){
+                            BurpExtender.similarSubDomainBscanAliveCount += 1;
+                            HashMap<String, String> value = entry.getValue();
+                            addAliveSimilarDomainToUI(entry.getKey(), value.get("title"),value.get("status"),value.get("rootDomain"));
+                        }
                     }
                 }
             }
