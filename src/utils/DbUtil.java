@@ -3,7 +3,7 @@ package utils;
 import java.sql.*;
 
 import domain.DomainProducer;
-import ui.BurpDomain;
+import ui.Sylas;
 import burp.BurpExtender;
 import com.google.common.base.Joiner;
 
@@ -19,10 +19,14 @@ import static java.lang.Thread.sleep;
 /**
  * @author linchen
  */
-public class DBUtil {
-    public DBUtil(int mode){
+public class DbUtil {
+    public DbUtil(int mode){
         this.mode = mode;
     }
+
+    /**
+     * 数据库连接模式，0为Mysql，1为SQLITE
+     */
     public int mode;
     /**
      * 使用Mysql
@@ -40,6 +44,7 @@ public class DBUtil {
      * 数据库连接
      */
     public Connection conn = null;
+    public String database;
     /**
      * 切换数据库
      */
@@ -54,6 +59,7 @@ public class DBUtil {
     public void setConn(String host, String port, String username, String password, String database) {
         String jdbcUrl = String.format("jdbc:mysql://%s:%s/%s?useServerPrepStmts=true", host, port,
                 database);
+        this.database = database;
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
             conn = DriverManager.getConnection(jdbcUrl, username, password);
@@ -66,7 +72,7 @@ public class DBUtil {
     public void setConn(){
         try {
             Class.forName("org.sqlite.JDBC");
-            conn = DriverManager.getConnection("JDBC:sqlite:BurpDomain.db");
+            conn = DriverManager.getConnection("JDBC:sqlite:Sylas.db");
             isConnect = true;
         } catch (Exception e) {
             BurpExtender.getStderr().println(e);
@@ -113,6 +119,7 @@ public class DBUtil {
                         "  `rootDomainName` varchar(64) DEFAULT NULL,\n" +
                         "  `ipAddress` varchar(64) DEFAULT NULL,\n" +
                         "  `createTime` datetime NOT NULL,\n" +
+                        "  `scanned` int default 0 null,\n" +
                         "  PRIMARY KEY (`id`),\n" +
                         "  UNIQUE KEY `SubDomain_subDomainName_uindex` (`subDomainName`)\n" +
                         ");");
@@ -132,6 +139,7 @@ public class DBUtil {
                         "  `rootDomainName` varchar(64) DEFAULT NULL,\n" +
                         "  `ipAddress` varchar(64) DEFAULT NULL,\n" +
                         "  `createTime` datetime NOT NULL,\n" +
+                        "  `scanned` int default 0 null,\n" +
                         "  PRIMARY KEY (`id`),\n" +
                         "   UNIQUE KEY `SimilarSubDomain_similarDomainName_uindex` (`subDomainName`)\n" +
                         ");");
@@ -146,6 +154,10 @@ public class DBUtil {
                         ");");
             }
         };
+        String[] subDomainTables = new String[]{"SubDomain","SimilarSubDomain"};
+        for (String i:subDomainTables) {
+            scannedFiledIsAlert(i);
+        }
         try{
             ResultSet set = conn.getMetaData().getTables(db,null,"%",null);
             while (set.next()){
@@ -161,11 +173,35 @@ public class DBUtil {
     }
 
     /**
+     * 此处是用来判断是否为旧版本插件，新版本需要在subdomain以及similarDomain中加入scan字段以支持
+     * @param table
+     */
+    public void scannedFiledIsAlert(String table){
+        try {
+            PreparedStatement scanColumnNameCreateSql = conn.prepareStatement("select count(*) as iscreated from information_schema.COLUMNS where TABLE_NAME = ? and TABLE_SCHEMA = ? and COLUMN_NAME = 'scanned'");
+            scanColumnNameCreateSql.setString(1,table);
+            scanColumnNameCreateSql.setString(2,database);
+            ResultSet set = scanColumnNameCreateSql.executeQuery();
+            int isCreated = 0;
+            while (set.next()){
+                isCreated = set.getInt("iscreated");
+            }
+            if (isCreated == 0){
+                PreparedStatement createScanSql = conn.prepareStatement("alter table ? add scanned int default 0 not null;");
+                createScanSql.setString(1,table);
+                createScanSql.execute();
+            }
+        } catch (SQLException e) {
+            BurpExtender.getStderr().println(e);
+        }
+    }
+
+    /**
      * 初始化Sqlite数据库
      * @param db
      */
     private void initSqlite(String db){
-        HashMap<String, String> tables = new HashMap<String, String>(4){
+        HashMap<String, String> tables = new HashMap<String, String>(6){
             {
                 put("Project","CREATE TABLE \"main\".\"Project\" (\n" +
                         "  \"id\" integer NOT NULL,\n" +
@@ -186,6 +222,7 @@ public class DBUtil {
                         "  \"rootDomainName\" TEXT,\n" +
                         "  \"ipAddress\" TEXT,\n" +
                         "  \"createTime\" TEXT,\n" +
+                        "  \"scan\" integers DEFAULT 0, \n" +
                         "  CONSTRAINT \"id\" PRIMARY KEY (\"id\")\n" +
                         "  CONSTRAINT \"SubDomain_projectName_uindex\" UNIQUE (\"subDomainName\")"+
                         ");");
@@ -216,6 +253,22 @@ public class DBUtil {
                         ");");
             }
         };
+        // 原先想要给sqlite增加检测url存活的功能，但是想了想实现有点麻烦。
+/*        //此处是用来判断是否为旧版本插件，新版本需要在subdomain中加入scan字段以支持
+        try {
+            PreparedStatement scanColumnNameCreateSql = conn.prepareStatement("select count(*) as iscreated from sqlite_master where name = 'SubDomain' and sql like '%scan%'");
+            ResultSet set = scanColumnNameCreateSql.executeQuery();
+            int isCreated = 0;
+            while (set.next()){
+                isCreated = set.getInt("iscreated");
+            }
+            if (isCreated == 0){
+                PreparedStatement createscanSql = conn.prepareStatement("alter table SubDomain add scan integer default 0 not null;");
+                createscanSql.execute();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }*/
         try{
             ResultSet set = conn.getMetaData().getTables(db,null,"%",null);
             while (set.next()){
@@ -315,7 +368,7 @@ public class DBUtil {
                 BurpExtender.subDomainMap.get(subDomain).put("ipAddress", ip);
             }
             BurpExtender.subDomainCount += 1;
-            BurpDomain.addSubDomainToUI(subDomain, ip, data.get("time"));
+            Sylas.addSubDomainToUI(subDomain, ip, data.get("time"));
             psSQL.setString(1, subDomain);
             psSQL.setString(2, getRootDomain(subDomain));
             psSQL.setString(3, ip);
@@ -359,7 +412,7 @@ public class DBUtil {
                     BurpExtender.similarSubDomainMap.get(subDomain).put("ipAddress", ip);
                 }
                 BurpExtender.similarSubDomainCount += 1;
-                BurpDomain.addSimilarSubDomainToUI(subDomain, ip, data.get("time"));
+                Sylas.addSimilarSubDomainToUI(subDomain, ip, data.get("time"));
                 psSQL.setString(1, subDomain);
                 psSQL.setString(2, getSimilarRootDomain(subDomain));
                 psSQL.setString(3, ip);
@@ -394,7 +447,7 @@ public class DBUtil {
                     continue;
                 }
                 BurpExtender.urlCount += 1;
-                BurpDomain.addURLToUI(url, createTime);
+                Sylas.addURLToUI(url, createTime);
                 pSQL.setString(1, url);
                 pSQL.setString(2, createTime);
                 pSQL.setString(3, currentProject);
@@ -428,7 +481,7 @@ public class DBUtil {
                     continue;
                 }
                 BurpExtender.similarUrlCount += 1;
-                BurpDomain.addSimilarUrlToUI(url, createTime);
+                Sylas.addSimilarUrlToUI(url, createTime);
                 pSQL.setString(1, url);
                 pSQL.setString(2, createTime);
                 pSQL.setString(3, currentProject);
@@ -634,7 +687,54 @@ public class DBUtil {
         }
         return subDomainMap;
     }
-
+    public HashMap<String,HashMap<String,String>> getSubDomainAlive(String projectName){
+        HashMap<String, HashMap<String, String>> subDomainAliveMap = new HashMap<>();
+        Object[] rootDomainList = getRootDomainSet(projectName).toArray();
+        String[] inSql = new String[rootDomainList.length];
+        Arrays.fill(inSql, "?");
+        String sql = "select url,title,status,rootDomainName from SubDomainBscanAlive where rootDomainName in ("+Joiner.on(",").join(inSql)+")";
+        try{
+            PreparedStatement preSQL = conn.prepareStatement(sql);
+            for (int i=0;i<rootDomainList.length;i++){
+                preSQL.setString(i+1, (String) rootDomainList[i]);
+            }
+            ResultSet set = preSQL.executeQuery();
+            while (set.next()){
+                HashMap<String,String> data = new HashMap<>();
+                data.put("rootDomain",set.getString("rootDomainName"));
+                data.put("status",set.getString("status"));
+                data.put("title",set.getString("title"));
+                subDomainAliveMap.put(set.getString("url"),data);
+            }
+        }catch (SQLException e){
+            BurpExtender.getStderr().println(e);
+        }
+        return subDomainAliveMap;
+    }
+    public HashMap<String,HashMap<String,String>> getSimilarSubDomainAlive(String projectName){
+        HashMap<String, HashMap<String, String>> similarDomainAliveMap = new HashMap<>();
+        Object[] rootDomainList = getRootDomainSet(projectName).toArray();
+        String[] inSql = new String[rootDomainList.length];
+        Arrays.fill(inSql, "?");
+        String sql = "select url,title,status,rootDomainName from SimilarDomainBscanAlive where rootDomainName in ("+Joiner.on(",").join(inSql)+")";
+        try{
+            PreparedStatement preSQL = conn.prepareStatement(sql);
+            for (int i=0;i<rootDomainList.length;i++){
+                preSQL.setString(i+1, (String) rootDomainList[i]);
+            }
+            ResultSet set = preSQL.executeQuery();
+            while (set.next()){
+                HashMap<String,String> data = new HashMap<>();
+                data.put("rootDomain",set.getString("rootDomainName"));
+                data.put("status",set.getString("status"));
+                data.put("title",set.getString("title"));
+                similarDomainAliveMap.put(set.getString("url"),data);
+            }
+        }catch (SQLException e){
+            BurpExtender.getStderr().println(e);
+        }
+        return similarDomainAliveMap;
+    }
     public HashMap<String, String> getUrlMap(String projectName){
         HashMap<String, String> urlMap = new HashMap<>();
         String sql = "select url, createTime from Url where projectName=?";
@@ -667,28 +767,5 @@ public class DBUtil {
         }
         return urlMap;
     }
-
-//    public HashMap<String, HashMap<String, String>> getSubDomainMap(String projectName){
-//        HashMap<String, HashMap<String, String>> subDomainMap = new HashMap<>();
-//        Object[] rootDomainList = getRootDomainSet(projectName).toArray();
-//        //不确定存不存在sql注入，或者说更帅一点的写法，先这样
-//        String sql = "select subDomainName,rootDomainName,ipAddress,createTime from SubDomain where rootDomainName in (?)";
-//        try {
-//            PreparedStatement preSQl = conn.prepareStatement(sql);
-//            preSQl.setString(1,"'"+Joiner.on("','").join(rootDomainList)+"'");
-//            ResultSet set = preSQl.executeQuery();
-//            while(set.next()){
-//                HashMap<String, String> data = new HashMap<>();
-//                data.put("ipAddress", set.getString("ipAddress"));
-//                data.put("createTime", set.getString("createTime"));
-//                data.put("status", "1");
-//                subDomainMap.put(set.getString("subDomainName"), data);
-//            }
-//        } catch (SQLException e) {
-//            BurpExtender.getStderr().println(e);
-//        }
-//        BurpExtender.getStdout().println(subDomainMap);
-//        return subDomainMap;
-//    }
 }
 

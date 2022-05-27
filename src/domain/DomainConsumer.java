@@ -11,7 +11,7 @@ public class DomainConsumer extends Thread {
         while(true){
             try {
                 QueueToResult();
-                sleep(1000);
+                sleep(5000);
             } catch (Exception error) {
                 error.printStackTrace(BurpExtender.getStderr());
             }

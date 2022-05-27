@@ -8,14 +8,13 @@ import domain.DomainProducer;
 import utils.Config;
 import burp.BurpExtender;
 import burp.IHttpRequestResponse;
-import utils.DBUtil;
+import utils.DbUtil;
 
 import java.awt.*;
 import java.awt.event.*;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.Timer;
 import javax.swing.*;
 import javax.swing.table.*;
 
@@ -24,10 +23,10 @@ import static java.lang.Thread.sleep;
 /**
  * @author linchen
  */
-public class BurpDomain extends JPanel {
-    public BurpDomain() {
+public class Sylas extends JPanel {
+    public Sylas() {
         initComponents();
-        initBurpDomain();
+        initSylas();
     }
 
     /**
@@ -87,9 +86,9 @@ public class BurpDomain extends JPanel {
                 connectDatabaseButton.setEnabled(false);
                 closeConnectButton.setEnabled(true);
                 BurpExtender.db.init(database);
-                if (!Config.burpDomainConfig.exists()){
+                if (!Config.sylasConfig.exists()){
                     try {
-                        Config.burpDomainConfig.createNewFile();
+                        Config.sylasConfig.createNewFile();
                     } catch (IOException e2) {
                         BurpExtender.getStderr().println(e2);
                     }
@@ -102,6 +101,7 @@ public class BurpDomain extends JPanel {
                 BurpExtender.config.put("database",database);
                 Config.writeJson(BurpExtender.config);
                 projectDoneAction(BurpExtender.config.get("currentProject"));
+                loadBscanDomainAlive(BurpExtender.config.get("currentProject"));
             }else{
                 connectDatabaseButton.setText("Status: Connect Failed");
             }
@@ -118,6 +118,7 @@ public class BurpDomain extends JPanel {
                 BurpExtender.config.put("currentProject", currentProject);
                 Config.writeJson(BurpExtender.config);
                 projectDoneAction(currentProject);
+                loadBscanDomainAlive(currentProject);
             }else{
                 JOptionPane.showMessageDialog(null,"Must select a project!","No Project",JOptionPane.ERROR_MESSAGE);
             }
@@ -168,18 +169,22 @@ public class BurpDomain extends JPanel {
         tabbedPane1 = new JTabbedPane();
         panel1 = new JPanel();
         label6 = new JLabel();
-        label7 = new JLabel();
-        scrollPane2 = new JScrollPane();
-        subDomainTable = new JTable();
+        tabbedPane2 = new JTabbedPane();
         scrollPane3 = new JScrollPane();
         urlTable = new JTable();
+        scrollPane5 = new JScrollPane();
+        domainAliveTable = new JTable();
+        scrollPane2 = new JScrollPane();
+        subDomainTable = new JTable();
         panel3 = new JPanel();
         label4 = new JLabel();
-        label9 = new JLabel();
-        scrollPane1 = new JScrollPane();
-        similarSubDomainTable = new JTable();
+        tabbedPane3 = new JTabbedPane();
         scrollPane4 = new JScrollPane();
         similarUrlsTable = new JTable();
+        scrollPane6 = new JScrollPane();
+        similarDomainTable = new JTable();
+        scrollPane1 = new JScrollPane();
+        similarSubDomainTable = new JTable();
 
         //======== this ========
         setLayout(new GridBagLayout());
@@ -297,17 +302,50 @@ public class BurpDomain extends JPanel {
                     GridBagConstraints.CENTER, GridBagConstraints.VERTICAL,
                     new Insets(0, 0, 5, 5), 0, 0));
 
-                //---- label7 ----
-                label7.setText("Urls");
-                panel1.add(label7, new GridBagConstraints(1, 0, 1, 1, 0.0, 0.0,
-                    GridBagConstraints.CENTER, GridBagConstraints.VERTICAL,
-                    new Insets(0, 0, 5, 0), 0, 0));
+                //======== tabbedPane2 ========
+                {
+
+                    //======== scrollPane3 ========
+                    {
+
+                        //---- urlTable ----
+                        urlModel = new DefaultTableModel(null, URL_COLUMN_FIELDS){
+                            @Override
+                            public Class<?> getColumnClass(int column) { return getValueAt(0,column).getClass();}
+                        };
+                        urlTable.setModel(urlModel);
+                        urlTable.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
+                        urlTable.setSurrendersFocusOnKeystroke(true);
+                        urlTable.setAutoCreateRowSorter(true);
+                        scrollPane3.setViewportView(urlTable);
+                    }
+                    tabbedPane2.addTab("Url", scrollPane3);
+
+                    //======== scrollPane5 ========
+                    {
+
+                        //---- domainAliveTable ----
+                        domainAliveModel = new DefaultTableModel(null, BSCAN_DOMAIN_ALIVE_DOMAIN_COLUMN_FIELDS){
+                            @Override
+                            public Class<?> getColumnClass(int column) { return getValueAt(0,column).getClass();}
+                        };
+                        domainAliveTable.setModel(domainAliveModel);
+                        domainAliveTable.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
+                        domainAliveTable.setAutoCreateRowSorter(true);
+                        domainAliveTable.setSurrendersFocusOnKeystroke(true);
+                        scrollPane5.setViewportView(domainAliveTable);
+                    }
+                    tabbedPane2.addTab("DomainAlive", scrollPane5);
+                }
+                panel1.add(tabbedPane2, new GridBagConstraints(1, 0, 1, 2, 0.0, 0.0,
+                    GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+                    new Insets(0, 0, 0, 0), 0, 0));
 
                 //======== scrollPane2 ========
                 {
 
                     //---- subDomainTable ----
-                    subDomainModel = new DefaultTableModel(null, subDomainColumnNames){
+                    subDomainModel = new DefaultTableModel(null, SUB_DOMAIN_COLUMN_FIELDS){
                         @Override
                         public Class<?> getColumnClass(int column) { return getValueAt(0,column).getClass();}
                     };
@@ -320,24 +358,6 @@ public class BurpDomain extends JPanel {
                 panel1.add(scrollPane2, new GridBagConstraints(0, 1, 1, 1, 0.0, 0.0,
                     GridBagConstraints.CENTER, GridBagConstraints.BOTH,
                     new Insets(0, 0, 0, 5), 0, 0));
-
-                //======== scrollPane3 ========
-                {
-
-                    //---- urlTable ----
-                    urlModel = new DefaultTableModel(null, urlColumnNames){
-                        @Override
-                        public Class<?> getColumnClass(int column) { return getValueAt(0,column).getClass();}
-                    };
-                    urlTable.setModel(urlModel);
-                    urlTable.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
-                    urlTable.setSurrendersFocusOnKeystroke(true);
-                    urlTable.setAutoCreateRowSorter(true);
-                    scrollPane3.setViewportView(urlTable);
-                }
-                panel1.add(scrollPane3, new GridBagConstraints(1, 1, 1, 1, 0.0, 0.0,
-                    GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-                    new Insets(0, 0, 0, 0), 0, 0));
             }
             tabbedPane1.addTab("Exact Match", panel1);
 
@@ -355,17 +375,47 @@ public class BurpDomain extends JPanel {
                     GridBagConstraints.CENTER, GridBagConstraints.VERTICAL,
                     new Insets(0, 0, 5, 5), 0, 0));
 
-                //---- label9 ----
-                label9.setText("Similar Urls");
-                panel3.add(label9, new GridBagConstraints(1, 0, 1, 1, 0.0, 0.0,
-                    GridBagConstraints.CENTER, GridBagConstraints.VERTICAL,
-                    new Insets(0, 0, 5, 0), 0, 0));
+                //======== tabbedPane3 ========
+                {
+
+                    //======== scrollPane4 ========
+                    {
+
+                        //---- similarUrlsTable ----
+                        similarUrlModel = new DefaultTableModel(null, URL_COLUMN_FIELDS){
+                            @Override
+                            public Class<?> getColumnClass(int column) { return getValueAt(0,column).getClass();}
+                        };
+                        similarUrlsTable.setModel(similarUrlModel);
+                        similarUrlsTable.setSurrendersFocusOnKeystroke(true);
+                        similarUrlsTable.setAutoCreateRowSorter(true);
+                        similarUrlsTable.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
+                        scrollPane4.setViewportView(similarUrlsTable);
+                    }
+                    tabbedPane3.addTab("Url", scrollPane4);
+
+                    //======== scrollPane6 ========
+                    {
+
+                        //---- similarDomainTable ----
+                        similarDomainAliveModel = new DefaultTableModel(null, BSCAN_DOMAIN_ALIVE_DOMAIN_COLUMN_FIELDS){
+                            @Override
+                            public Class<?> getColumnClass(int column) { return getValueAt(0,column).getClass();}
+                        };
+                        similarDomainTable.setModel(similarDomainAliveModel);
+                        scrollPane6.setViewportView(similarDomainTable);
+                    }
+                    tabbedPane3.addTab("DomainAlive", scrollPane6);
+                }
+                panel3.add(tabbedPane3, new GridBagConstraints(1, 0, 1, 2, 0.0, 0.0,
+                    GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+                    new Insets(0, 0, 0, 0), 0, 0));
 
                 //======== scrollPane1 ========
                 {
 
                     //---- similarSubDomainTable ----
-                    similarSubDomainModel = new DefaultTableModel(null, subDomainColumnNames){
+                    similarSubDomainModel = new DefaultTableModel(null, SUB_DOMAIN_COLUMN_FIELDS){
                         @Override
                         public Class<?> getColumnClass(int column) { return getValueAt(0,column).getClass();}
                     };
@@ -378,24 +428,6 @@ public class BurpDomain extends JPanel {
                 panel3.add(scrollPane1, new GridBagConstraints(0, 1, 1, 1, 0.0, 0.0,
                     GridBagConstraints.CENTER, GridBagConstraints.BOTH,
                     new Insets(0, 0, 0, 5), 0, 0));
-
-                //======== scrollPane4 ========
-                {
-
-                    //---- similarUrlsTable ----
-                    similarUrlModel = new DefaultTableModel(null, urlColumnNames){
-                        @Override
-                        public Class<?> getColumnClass(int column) { return getValueAt(0,column).getClass();}
-                    };
-                    similarUrlsTable.setModel(similarUrlModel);
-                    similarUrlsTable.setSurrendersFocusOnKeystroke(true);
-                    similarUrlsTable.setAutoCreateRowSorter(true);
-                    similarUrlsTable.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
-                    scrollPane4.setViewportView(similarUrlsTable);
-                }
-                panel3.add(scrollPane4, new GridBagConstraints(1, 1, 1, 1, 0.0, 0.0,
-                    GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-                    new Insets(0, 0, 0, 0), 0, 0));
             }
             tabbedPane1.addTab("Similar Matching", panel3);
         }
@@ -418,36 +450,75 @@ public class BurpDomain extends JPanel {
         similarSubDomainModel.addRow(new Object[]{BurpExtender.similarSubDomainCount, domain, ip, time});
     }
     public static void addSimilarUrlToUI(String url, String time){
-
         similarUrlModel.addRow(new Object[]{BurpExtender.similarUrlCount, url, time});
     }
-
+    public static void addAliveDomainToUI(String url,String title,String status, String rootDomain){
+        domainAliveModel.addRow(new Object[]{BurpExtender.subDomainBscanAliveCount,url,title,status,rootDomain});
+    }
+    public static void addAliveSimilarDomainToUI(String url,String title,String status, String rootDomain){
+        similarDomainAliveModel.addRow(new Object[]{BurpExtender.subDomainBscanAliveCount,url,title,status,rootDomain});
+    }
     // 2022年01月10日21:02:25 修复了排序数据后切换项目插件UI崩溃的情况
     public void clearUI(){
         if(BurpExtender.subDomainCount > 0){
             BurpExtender.subDomainCount = 0;
-            subDomainModel.setColumnIdentifiers(subDomainColumnNames);
+            subDomainModel.setColumnIdentifiers(SUB_DOMAIN_COLUMN_FIELDS);
             subDomainModel.setRowCount(0);
         }
         if(BurpExtender.urlCount > 0){
             BurpExtender.urlCount = 0;
-            urlModel.setColumnIdentifiers(urlColumnNames);
+            urlModel.setColumnIdentifiers(URL_COLUMN_FIELDS);
             urlModel.setRowCount(0);
         }
         if (BurpExtender.similarSubDomainCount > 0){
             BurpExtender.similarSubDomainCount = 0;
-            similarSubDomainModel.setColumnIdentifiers(subDomainColumnNames);
+            similarSubDomainModel.setColumnIdentifiers(SUB_DOMAIN_COLUMN_FIELDS);
             similarSubDomainModel.setRowCount(0);
         }
         if (BurpExtender.similarUrlCount > 0){
             BurpExtender.similarUrlCount = 0;
-            similarUrlModel.setColumnIdentifiers(urlColumnNames);
+            similarUrlModel.setColumnIdentifiers(URL_COLUMN_FIELDS);
             similarUrlModel.setRowCount(0);
         }
         resizeColumnWidth(subDomainTable,urlTable);
         resizeColumnWidth(similarSubDomainTable,similarUrlsTable);
     }
 
+    /**
+     * 从数据库中拉取Bscan的数据，重载一次数据。
+     * @param currentProject
+     */
+    public void loadBscanDomainAlive(String currentProject){
+        if(!"".equals(currentProject)){
+            if(BurpExtender.db.projectExist(currentProject)){
+                if (BurpExtender.subDomainBscanAliveCount >0){
+                    BurpExtender.subDomainBscanAliveCount = 0;
+                    domainAliveModel.setColumnIdentifiers(BSCAN_DOMAIN_ALIVE_DOMAIN_COLUMN_FIELDS);
+                    domainAliveModel.setRowCount(0);
+                }
+                if (BurpExtender.similarSubDomainBscanAliveCount >0){
+                    BurpExtender.similarSubDomainBscanAliveCount = 0;
+                    similarDomainAliveModel.setColumnIdentifiers(BSCAN_DOMAIN_ALIVE_DOMAIN_COLUMN_FIELDS);
+                    similarDomainAliveModel.setRowCount(0);
+                }
+                // 判断连接模式，为MYSQL时才可以用这个功能
+                if(BurpExtender.db.mode == DbUtil.MYSQL_DB){
+                    BurpExtender.subDomainBscanAliveMap = BurpExtender.db.getSubDomainAlive(currentProject);
+                    BurpExtender.similarSubDomainBscanAliveMap = BurpExtender.db.getSimilarSubDomainAlive(currentProject);
+                    for(Map.Entry<String, HashMap<String, String>> entry: BurpExtender.subDomainBscanAliveMap.entrySet()){
+                        BurpExtender.subDomainBscanAliveCount += 1;
+                        HashMap<String, String> value = entry.getValue();
+                        addAliveDomainToUI(entry.getKey(), value.get("title"),value.get("status"),value.get("rootDomain"));
+                    }
+                    for(Map.Entry<String, HashMap<String, String>> entry: BurpExtender.similarSubDomainBscanAliveMap.entrySet()){
+                        BurpExtender.similarSubDomainBscanAliveCount += 1;
+                        HashMap<String, String> value = entry.getValue();
+                        addAliveSimilarDomainToUI(entry.getKey(), value.get("title"),value.get("status"),value.get("rootDomain"));
+                    }
+                }
+            }
+        }
+    }
     /**
      * 自适应宽度
      */
@@ -470,10 +541,10 @@ public class BurpDomain extends JPanel {
     private void switchDatabaseServer(int chose, String... arg){
         BurpExtender.db.switchConn(chose);
         switch (chose){
-            case DBUtil.MYSQL_DB:
+            case DbUtil.MYSQL_DB:
                 BurpExtender.db.setConn(arg[0], arg[1], arg[2], arg[3], arg[4]);
                 break;
-            case DBUtil.SQLITE_DB:
+            case DbUtil.SQLITE_DB:
                 BurpExtender.db.setConn();
                 break;
             default:
@@ -544,10 +615,17 @@ public class BurpDomain extends JPanel {
             }
         }
     }
-    public void initBurpDomain(){
+    public void initSylas(){
         if(autoConnectDatabaseByConfig()){
             String currentProject = BurpExtender.config.get("currentProject");
             projectDoneAction(currentProject);
+            TimerTask timerTask = new TimerTask() {
+                @Override
+                public void run() {
+                    loadBscanDomainAlive(BurpExtender.config.get("currentProject"));
+                }
+            };
+            new Timer().schedule(timerTask,0L,60*1000L);
         }
     }
 
@@ -568,24 +646,31 @@ public class BurpDomain extends JPanel {
     private JTabbedPane tabbedPane1;
     private JPanel panel1;
     private JLabel label6;
-    private JLabel label7;
-    private JScrollPane scrollPane2;
-    private JTable subDomainTable;
+    private JTabbedPane tabbedPane2;
     private JScrollPane scrollPane3;
     private JTable urlTable;
+    private JScrollPane scrollPane5;
+    private JTable domainAliveTable;
+    private JScrollPane scrollPane2;
+    private JTable subDomainTable;
     private JPanel panel3;
     private JLabel label4;
-    private JLabel label9;
-    private JScrollPane scrollPane1;
-    private JTable similarSubDomainTable;
+    private JTabbedPane tabbedPane3;
     private JScrollPane scrollPane4;
     private JTable similarUrlsTable;
+    private JScrollPane scrollPane6;
+    private JTable similarDomainTable;
+    private JScrollPane scrollPane1;
+    private JTable similarSubDomainTable;
     // JFormDesigner - End of variables declaration  //GEN-END:variables
     private static DefaultTableModel subDomainModel;
     private static DefaultTableModel urlModel;
     private static DefaultTableModel similarSubDomainModel;
     private static DefaultTableModel similarUrlModel;
-    private static final String[] subDomainColumnNames = {"#", "domain", "IP", "Time"};
-    private static final String[] urlColumnNames = {"#", "URL", "Time"};
+    private static DefaultTableModel domainAliveModel;
+    private static DefaultTableModel similarDomainAliveModel;
+    private static final String[] SUB_DOMAIN_COLUMN_FIELDS = {"#", "Domain", "IP", "Time"};
+    private static final String[] URL_COLUMN_FIELDS = {"#", "URL", "Time"};
+    private static final String[] BSCAN_DOMAIN_ALIVE_DOMAIN_COLUMN_FIELDS = {"#","Domain","Title","Status","RootDomain"};
 
 }

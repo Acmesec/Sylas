@@ -2,7 +2,7 @@ package ui;
 
 import java.awt.event.*;
 import utils.Config;
-import utils.DBUtil;
+import utils.DbUtil;
 
 import java.awt.*;
 import java.util.Arrays;
@@ -19,14 +19,14 @@ public class ControlSwitch extends JPanel {
         // TODO add your code here
         int dbServeRChose = dbServerComboBox.getSelectedIndex();
         switch (dbServeRChose){
-            case DBUtil.MYSQL_DB:
+            case DbUtil.MYSQL_DB:
                 hostTextField.setEnabled(true);
                 portTextField.setEnabled(true);
                 usernameTextField.setEnabled(true);
                 databaseTextField.setEnabled(true);
                 passwdTextField.setEnabled(true);
                 break;
-            case DBUtil.SQLITE_DB:
+            case DbUtil.SQLITE_DB:
                 hostTextField.setEnabled(false);
                 portTextField.setEnabled(false);
                 usernameTextField.setEnabled(false);

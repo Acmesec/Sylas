@@ -1,12 +1,20 @@
-# BurpDomain - 新一代子域名收集工具
+# Sylas(塞拉斯) - 新一代子域名收集工具
+
+原名：BurpDomain
 
 作者：[@br0ken_5](https://github.com/broken5) && [@0chencc](https://github.com/0chencc)
 
 ![](img/index.png)
 
+## 项目描述
+
+​	Sylas是我很喜欢的一款游戏《英雄联盟》(League of Legends)里的英雄。他在面板数值已经足够可观的情况下，大招又能偷取其他英雄的大招为己用。我觉得很适合这个项目，我们在插件的基础功能开发完成之后，又再思考与其他项目联动的可能，尽可能地把我们手头上现有的idea跟这个项目联动融合，使Sylas成为战场上能独当一面的存在。——林晨[@0chencc](https://github.com/0chencc)
+
+![](img/Sylas.jpeg)
+
 ## 致谢
 
-工具开发过程中参考了[@bit4woo](https://github.com/bit4woo)师傅的[domain_hunter_pro](https://github.com/bit4woo/domain_hunter_pro) 项目
+​	工具开发过程中参考了[@bit4woo](https://github.com/bit4woo)师傅的[domain_hunter_pro](https://github.com/bit4woo/domain_hunter_pro) 项目
 
 ## 功能
 
@@ -24,7 +32,11 @@
 
 * 支持mysql/sqlite
 
-我们打算思考一下这个工具与后期其他工具的联动，故而默认选择了mysql作为数据库，根据鸭王的反馈，我们又添加了sqlite作为支持。
+我们打算思考一下这个工具与后期其他工具的联动，故而选择了mysql作为数据库，根据鸭王师傅[@TheKingOfDuck](https://github.com/TheKingOfDuck)的反馈，我们又添加了Sqlite作为支持。目前是默认使用Sqlite作为数据库，降低用户的使用成本。
+
+* 与Bscan的联动
+
+这部分就是我所说的Mysql的联动，在目前的版本中，BurpDomain将支持定时每1分钟从Mysql数据库中拉取[Bscan](https://github.com/broken5/bscan/tree/sylas)测活的数据，但[Bscan](https://github.com/broken5/bscan/tree/sylas)的能力远不止于此。我在Todo List里添加了将Bscan漏扫的能力也结合在BurpDomain上。
 
 如果有需要支持其他数据库，请大家在issue里反馈，我收到反馈之后会立即加上。
 
@@ -34,12 +46,15 @@
 - [x] 相似域名模糊匹配
 - [ ] url的后缀名筛选
 - [ ] 由于仓促赶时间，所以当前的代码可读性是非常差的，会找个时间重构一下代码。
+- [ ] Bscan漏扫能力结合
 
 ## 使用方法
 
 ### 0x00 配置数据库
 
-将插件加载到burp之后，需要启动Mysql服务，并且在Mysql中建立一个数据库，将Mysql的连接配置设置好。
+在当前版本以及往后所有版本里，都支持了Sqlite，如果只是想单纯使用BurpDomain的功能，那么只需要Sqlite即可。
+
+如果需要获得更强的功能，那么需要启动Mysql服务，并且在Mysql中创建一个数据库，将Mysql的连接配置设置好。
 
 ![](img/databaseSetting.png)
 
@@ -91,3 +106,11 @@ for(String s:BurpExtender.currentRootDomainSet){
 ![](img/features1.png)
 
 ![](img/features2.png)
+
+### 0x06 与Bscan的联动
+
+这项功能只在配置了Bscan以及Mysql的用户才可以体验。目前仅支持批量网站测活，效果如下。
+
+![](img/BscanDomainAliveCheck.png)
+
+需要在[Bscan](https://github.com/broken5/bscan/tree/sylas)的配置文件里配置塞拉斯的数据库信息，随后按照readme中的方法启动即可。

@@ -95,16 +95,19 @@ public class DomainProducer extends Thread{
             Set<String> domains = grepDomain(reqText);
             Set<String> urls = new HashSet<>();
             byte[] response = message.getResponse();
-            if (response != null) {
-                //避免大数据包卡死整个程序
-                if (response.length >= DATA_MAX_SIZE) {
-                    response = subByte(response, 0, DATA_MAX_SIZE);
+            if (response != null ) {
+                List<String> respHeaders = helpers.analyzeResponse(message.getResponse()).getHeaders();
+                if(checkContentType(respHeaders)){
+                    //避免大数据包卡死整个程序
+                    if (response.length >= DATA_MAX_SIZE) {
+                        response = subByte(response, 0, DATA_MAX_SIZE);
+                    }
+                    String decodeRespText = decodeResp(new String(response));
+                    Set<String> respDomains = grepDomain(decodeRespText);
+                    Set<String> respUrls = grepUrls(decodeRespText);
+                    domains.addAll(respDomains);
+                    urls.addAll(respUrls);
                 }
-                String decodeRespText = decodeResp(new String(response));
-                Set<String> respDomains = grepDomain(decodeRespText);
-                Set<String> respUrls = grepUrls(decodeRespText);
-                domains.addAll(respDomains);
-                urls.addAll(respUrls);
             }
             //对子域名以及网址进行搜索，如果一个for一次是不是有点笨呢？
             for (String domain : domains) {
@@ -117,6 +120,30 @@ public class DomainProducer extends Thread{
             }
             //在这个地方添加similarDomain
         }
+    }
+
+    /**
+     * 确认content的类型
+     * @param headers
+     * @return
+     */
+    public static boolean checkContentType(List<String> headers){
+        String contentType = "";
+        for (String header : headers) {
+            if(header.toLowerCase().startsWith("content-type:")){
+                contentType = header.substring(12).trim();
+            }
+        }
+        if("".equals(contentType)){
+            return false;
+        }
+        String[] allowContentType = {"application/javascript", "text/", "application/json", "application/xml"};
+        for (String s : allowContentType) {
+            if(contentType.contains(s)){
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

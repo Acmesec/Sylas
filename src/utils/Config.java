@@ -18,7 +18,7 @@ public class Config {
     /**
      * 配置文件
      */
-    public static File burpDomainConfig = new File("burpDomain_setting.json");
+    public static File sylasConfig = new File("sylas_setting.json");
     public static HashMap<String, String> initDatabaseSetting = new HashMap<String, String>(6){{
         put("db_server","");
         put("host","");
@@ -36,13 +36,13 @@ public class Config {
     }
 
     public static Boolean isBuild(){
-        return burpDomainConfig.exists()&&burpDomainConfig.isFile();
+        return sylasConfig.exists()&& sylasConfig.isFile();
     }
 
     public static HashMap<String,String> parseJson() {
         try {
-            BurpExtender.getStdout().println(Config.burpDomainConfig.getAbsolutePath());
-            BufferedReader settingReader = new BufferedReader(new FileReader(Config.burpDomainConfig));
+            BurpExtender.getStdout().println(Config.sylasConfig.getAbsolutePath());
+            BufferedReader settingReader = new BufferedReader(new FileReader(Config.sylasConfig));
             HashMap<String,String> tmp = new Gson().fromJson(settingReader, new TypeToken<HashMap<String, String>>() {}.getType());
             if(tmp == null){
                 return initDatabaseSetting;
@@ -57,7 +57,7 @@ public class Config {
     public static void writeJson(HashMap<String,String> setting){
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         try{
-            BufferedWriter writer = new BufferedWriter(new FileWriter(Config.burpDomainConfig));
+            BufferedWriter writer = new BufferedWriter(new FileWriter(Config.sylasConfig));
             writer.write(gson.toJson(setting));
             writer.flush();
         }catch (IOException e){
