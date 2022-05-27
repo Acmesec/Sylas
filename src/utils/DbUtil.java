@@ -12,6 +12,7 @@ import java.util.HashMap;
 import com.google.common.net.InternetDomainName;
 
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.concurrent.BlockingQueue;
 
 import static java.lang.Thread.sleep;
@@ -105,14 +106,14 @@ public class DbUtil {
         HashMap<String, String> tables = new HashMap<String, String>(6){
             {
                 //项目表
-                put("Project","CREATE TABLE `Project` (\n" +
+                put("PROJECT","CREATE TABLE `Project` (\n" +
                         "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
                         "  `projectName` varchar(64) NOT NULL,\n" +
                         "  PRIMARY KEY (`id`),\n" +
                         "  UNIQUE KEY `Project_projectName_uindex` (`projectName`)\n" +
                         ");");
                 //根域名表
-                put("RootDomain","CREATE TABLE `RootDomain` (\n" +
+                put("ROOTDOMAIN","CREATE TABLE `RootDomain` (\n" +
                         "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
                         "  `rootDomainName` varchar(64) NOT NULL,\n" +
                         "  `projectName` varchar(64) NOT NULL,\n" +
@@ -120,7 +121,7 @@ public class DbUtil {
                         "  UNIQUE KEY `RootDomain_domainName_uindex` (`rootDomainName`)\n" +
                         ");");
                 //子域名表
-                put("SubDomain","CREATE TABLE `SubDomain` (\n" +
+                put("SUBDOMAIN","CREATE TABLE `SubDomain` (\n" +
                         "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
                         "  `subDomainName` varchar(128) NOT NULL,\n" +
                         "  `rootDomainName` varchar(64) DEFAULT NULL,\n" +
@@ -131,7 +132,7 @@ public class DbUtil {
                         "  UNIQUE KEY `SubDomain_subDomainName_uindex` (`subDomainName`)\n" +
                         ");");
                 //url表
-                put("Url","CREATE TABLE `Url` (\n" +
+                put("URL","CREATE TABLE `Url` (\n" +
                         "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
                         "  `url` varchar(256) NOT NULL,\n" +
                         "  `projectName` varchar(64) NOT NULL,\n" +
@@ -140,7 +141,7 @@ public class DbUtil {
                         "  UNIQUE KEY `Url_url_uindex` (`url`)\n" +
                         ");");
                 //相似域名表
-                put("SimilarSubDomain","CREATE TABLE `SimilarSubDomain`(\n" +
+                put("SIMILARSUBDOMAIN","CREATE TABLE `SimilarSubDomain`(\n" +
                         "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
                         "  `subDomainName` varchar(128) NOT NULL,\n" +
                         "  `rootDomainName` varchar(64) DEFAULT NULL,\n" +
@@ -151,7 +152,7 @@ public class DbUtil {
                         "   UNIQUE KEY `SimilarSubDomain_similarDomainName_uindex` (`subDomainName`)\n" +
                         ");");
                 //相似域名子域名表
-                put("SimilarUrl","CREATE TABLE `SimilarUrl`(\n" +
+                put("SIMILARURL","CREATE TABLE `SimilarUrl`(\n" +
                         "   `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
                         "   `url` varchar(64) NOT NULL,\n" +
                         "   `projectName` varchar(64) NOT NULL,\n" +
@@ -173,7 +174,7 @@ public class DbUtil {
                     this.bscanReady = true;
                     BurpExtender.getStdout().println("Bscan ready");
                 }
-                tables.remove(table);
+                tables.remove(table.toUpperCase());
             }
             for (String sql:tables.values()){
                 conn.createStatement().executeLargeUpdate(sql);
