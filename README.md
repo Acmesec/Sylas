@@ -1,3 +1,5 @@
+[中文](./README.md)|[English](./README_en.md)
+
 # Sylas(塞拉斯) - 新一代子域名收集工具
 
 原名：BurpDomain
@@ -147,6 +149,7 @@ for(String s:BurpExtender.currentRootDomainSet){
 ![](img/bscanConfigure_2.png)
 
 ##### 0x02 启动
+
 直接以nohup去启动本程序，程序会在启动时在数据库中自动创建需要的表名
 ```shell
 nohup ./bscanSylas &
