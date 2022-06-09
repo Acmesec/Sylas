@@ -48,7 +48,7 @@ If you need to support other databases, please give feedback in the issue, I wil
 - [x] fuzzy matching of similar domains
 - [ ] url suffix filter
 - [ ] Due to the hurry, the readability of the current code is very poor, and the code will be refactored at some time.
-- [ ] Bscan miss scanning capability combination
+- [ ] Bscan Vulnerability Scanning Capability Combination
 
 ## Instructions
 
