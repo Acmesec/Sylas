@@ -1,6 +1,5 @@
 package domain;
 
-import utils.Config;
 import org.apache.commons.text.StringEscapeUtils;
 import burp.*;
 
@@ -8,11 +7,7 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.sql.Date;
 import java.text.SimpleDateFormat;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,7 +23,7 @@ public class DomainProducer extends Thread{
      * */
     public static final String DOMAIN_NAME_PATTERN = "((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)+[A-Za-z]{2,6}";
     private static final String URL_PATTERN = "((http|https)://)(www.)?[a-zA-Z0-9@:%._\\+~#?&//=]{2,256}\\.[a-z]{2,6}\\b([-a-zA-Z0-9@:%._\\+~#?&//=]*)";
-    private static final int DATA_MAX_SIZE = 100000000;
+    private static final int DATA_MAX_SIZE = 5 * 1024 * 1024 ;
     public static final int PASSIVE_MODE = 0;
     public static final int ACTIVE_MODE = 1;
     public static final String USELESS_EXTENSIONS = "3g2|3gp|7z|aac|abw|aif|aifc|aiff|arc|au|avi|azw|bin|bmp|bz|bz2|" +
@@ -51,26 +46,36 @@ public class DomainProducer extends Thread{
     }
 
     public static boolean checkOrigin(List<String> headers){
+        boolean result = false;
         try{
-            String host = "", rHost = "", oHost = "";
+            String host = "", refererHost = "", originHost = "";
             for (String header : headers) {
                 header = header.toLowerCase();
                 if (header.startsWith("host:")) {
                     host = header.substring(4).trim();
                 }
                 if (header.startsWith("referer:")) {
-                    rHost = new URL(header.substring(8).trim()).getHost();
+                    refererHost = new URL(header.substring(8).trim()).getHost();
 
                 }
                 if (header.startsWith("origin:")) {
-                    oHost = new URL(header.substring(7).trim()).getHost();
+                    originHost = new URL(header.substring(7).trim()).getHost();
                 }
             }
             for (String s : BurpExtender.currentRootDomainSet) {
-                if(host.contains(s) || rHost.contains(s) || oHost.contains(s)){
-                    return true;
+                if (host.contains(s) || refererHost.contains(s) || originHost.contains(s)) {
+                    result = true;
+                    break;
                 }
             }
+            for(String s : BurpExtender.collectDataFromDomainList){
+                if(host.contains(s)){
+                    result = true;
+                    break;
+                }
+            }
+            return result;
+
         }catch (Exception e){
             BurpExtender.getStderr().println(e);
         }
@@ -157,15 +162,16 @@ public class DomainProducer extends Thread{
             if(!BurpExtender.subDomainQueue.contains(domain)&&!BurpExtender.subDomainMap.containsKey(domain)){
                 BurpExtender.subDomainQueue.add(domain);
                 HashMap<String, String> data = new HashMap<>();
+//                BurpExtender
                 BurpExtender.subDomainMap.put(domain, data);
                 String time = getCurrentTime();
                 data.put("time", time);
                 // 如果是主动搜索可以直接获取IP，即使DNS卡住也不会导致burp堵塞
                 // 通过流量被动收集，会定时获取IP，具体实现在DBUtil.insertSubDomainQueueToDb()中
-                if(mode == ACTIVE_MODE){
-                    String ip = Config.getDomainIp(domain);
-                    data.put("ipAddress", ip);
-                }
+//                if(mode == ACTIVE_MODE){
+//                    String ip = Config.getDomainIp(domain);
+//                    data.put("ipAddress", ip);
+//                }
             }
         }else if(isSimilarSubDomain(domain)){
             if(!BurpExtender.similarSubDomainQueue.contains(domain)&&!BurpExtender.similarSubDomainMap.containsKey(domain)&&!BurpExtender.currentRootDomainSet.contains(domain)){
@@ -174,10 +180,10 @@ public class DomainProducer extends Thread{
                 BurpExtender.similarSubDomainMap.put(domain, data);
                 String time = getCurrentTime();
                 data.put("time", time);
-                if(mode == ACTIVE_MODE){
-                    String ip = Config.getDomainIp(domain);
-                    data.put("ipAddress", ip);
-                }
+//                if(mode == ACTIVE_MODE){
+//                    String ip = Config.getDomainIp(domain);
+//                    data.put("ipAddress", ip);
+//                }
 //                BurpExtender.similarSubDomainMap.put(domain, data);
             }
         }
@@ -323,7 +329,6 @@ public class DomainProducer extends Thread{
 
     /**
      * 将流量传入到该函数进行解析提取域名
-     * @param httpResponse
      * @return
      */
     public static Set<String> grepDomain(String httpResponse) {
@@ -336,14 +341,14 @@ public class DomainProducer extends Thread{
             if(domain.startsWith("2f")){
                 domain = domain.replaceFirst("2f", "");
             }
+            if(domain.startsWith("252f")){
+                domain = domain.replaceFirst("252f", "");
+            }
             if(domain.startsWith("3a")){
                 domain = domain.replaceFirst("3a", "");
             }
             if(domain.startsWith("253a")){
                 domain = domain.replaceFirst("253a", "");
-            }
-            if(domain.startsWith("252f")){
-                domain = domain.replaceFirst("252f", "");
             }
             if(domain.startsWith("u002f")){
                 domain = domain.replaceFirst("u002f", "");

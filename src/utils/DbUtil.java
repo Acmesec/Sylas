@@ -106,22 +106,22 @@ public class DbUtil {
         HashMap<String, String> tables = new HashMap<String, String>(6){
             {
                 //项目表
-                put("PROJECT","CREATE TABLE `Project` (\n" +
+                put("PROJECT","CREATE TABLE IF NOT EXISTS `Project` (\n" +
                         "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
                         "  `projectName` varchar(64) NOT NULL,\n" +
                         "  PRIMARY KEY (`id`),\n" +
                         "  UNIQUE KEY `Project_projectName_uindex` (`projectName`)\n" +
-                        ");");
+                        "); CHARSET=utf8;");
                 //根域名表
-                put("ROOTDOMAIN","CREATE TABLE `RootDomain` (\n" +
+                put("ROOTDOMAIN","CREATE TABLE IF NOT EXISTS `RootDomain` (\n" +
                         "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
                         "  `rootDomainName` varchar(64) NOT NULL,\n" +
                         "  `projectName` varchar(64) NOT NULL,\n" +
                         "  PRIMARY KEY (`id`),\n" +
                         "  UNIQUE KEY `RootDomain_domainName_uindex` (`rootDomainName`)\n" +
-                        ");");
+                        "); CHARSET=utf8;");
                 //子域名表
-                put("SUBDOMAIN","CREATE TABLE `SubDomain` (\n" +
+                put("SUBDOMAIN","CREATE TABLE IF NOT EXISTS `SubDomain` (\n" +
                         "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
                         "  `subDomainName` varchar(128) NOT NULL,\n" +
                         "  `rootDomainName` varchar(64) DEFAULT NULL,\n" +
@@ -130,18 +130,18 @@ public class DbUtil {
                         "  `scanned` int default 0 null,\n" +
                         "  PRIMARY KEY (`id`),\n" +
                         "  UNIQUE KEY `SubDomain_subDomainName_uindex` (`subDomainName`)\n" +
-                        ");");
+                        "); CHARSET=utf8;");
                 //url表
-                put("URL","CREATE TABLE `Url` (\n" +
+                put("URL","CREATE TABLE IF NOT EXISTS `Url` (\n" +
                         "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
                         "  `url` varchar(256) NOT NULL,\n" +
                         "  `projectName` varchar(64) NOT NULL,\n" +
                         "  `createTime` datetime NOT NULL,\n" +
                         "  PRIMARY KEY (`id`),\n" +
                         "  UNIQUE KEY `Url_url_uindex` (`url`)\n" +
-                        ");");
+                        "); CHARSET=utf8;");
                 //相似域名表
-                put("SIMILARSUBDOMAIN","CREATE TABLE `SimilarSubDomain`(\n" +
+                put("SIMILARSUBDOMAIN","CREATE TABLE IF NOT EXISTS `SimilarSubDomain`(\n" +
                         "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
                         "  `subDomainName` varchar(128) NOT NULL,\n" +
                         "  `rootDomainName` varchar(64) DEFAULT NULL,\n" +
@@ -150,16 +150,29 @@ public class DbUtil {
                         "  `scanned` int default 0 null,\n" +
                         "  PRIMARY KEY (`id`),\n" +
                         "   UNIQUE KEY `SimilarSubDomain_similarDomainName_uindex` (`subDomainName`)\n" +
-                        ");");
+                        "); CHARSET=utf8;");
                 //相似域名子域名表
-                put("SIMILARURL","CREATE TABLE `SimilarUrl`(\n" +
+                put("SIMILARURL","CREATE TABLE IF NOT EXISTS `SimilarUrl`(\n" +
                         "   `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
                         "   `url` varchar(64) NOT NULL,\n" +
                         "   `projectName` varchar(64) NOT NULL,\n" +
                         "  `createTime` datetime NOT NULL,\n" +
                         "   PRIMARY KEY (`id`),\n" +
                         "   UNIQUE KEY `SimilarUrl_url_uindex` (`url`)\n" +
-                        ");");
+                        "); CHARSET=utf8;");
+                put("WEB", "CREATE TABLE IF NOT EXISTS WEB (\n" +
+                        "    id int(11) AUTO_INCREMENT PRIMARY KEY,\n" +
+                        "    url varchar(256) UNIQUE,\n" +
+                        "    status varchar(64),\n" +
+                        "    title varchar(64),\n" +
+                        "    length varchar(64),\n" +
+                        "    application varchar(64),\n" +
+                        "    webserver varchar(64),\n" +
+                        "    framework varchar(64),\n" +
+                        "    os varchar(64),\n" +
+                        "    description varchar(64),\n" +
+                        "    createTime datetime not null\n"+
+                        ") CHARSET=utf8;");
             }
         };
         String[] subDomainTables = new String[]{"SubDomain","SimilarSubDomain"};
@@ -170,7 +183,7 @@ public class DbUtil {
             ResultSet set = conn.getMetaData().getTables(db,null,"%",null);
             while (set.next()){
                 String table = set.getString("TABLE_NAME");
-                if("SubDomainBscanAlive".equals(table)){
+                if("web".equals(table)){
                     this.bscanReady = true;
                     BurpExtender.getStdout().println("Bscan ready");
                 }
@@ -358,11 +371,12 @@ public class DbUtil {
                 continue;
             }
             String ip = data.get("ipAddress");
-            if(ip==null) {
-                // 用后台的线程去获取IP，防止DNS延迟造成burp流量堵塞
-                ip = Config.getDomainIp(subDomain);
-                BurpExtender.subDomainMap.get(subDomain).put("ipAddress", ip);
+            // 用后台的线程去获取IP，防止DNS延迟造成burp流量堵塞
+            ip = Config.getDomainIp(subDomain);
+            if("Unknown".equals(ip)){
+                continue;
             }
+            BurpExtender.subDomainMap.get(subDomain).put("ipAddress", ip);
             BurpExtender.subDomainCount += 1;
             Sylas.addSubDomainToUI(subDomain, ip, data.get("time"));
             psSQL.setString(1, subDomain);
@@ -401,12 +415,11 @@ public class DbUtil {
                 if(data==null){
                     continue;
                 }
-                String ip = data.get("ipAddress");
-                if(ip==null) {
-                    // 用后台的线程去获取IP，防止DNS延迟造成burp流量堵塞
-                    ip = Config.getDomainIp(subDomain);
-                    BurpExtender.similarSubDomainMap.get(subDomain).put("ipAddress", ip);
+                String ip = Config.getDomainIp(subDomain);
+                if("Unknown".equals(ip)){
+                    continue;
                 }
+                BurpExtender.similarSubDomainMap.get(subDomain).put("ipAddress", ip);
                 BurpExtender.similarSubDomainCount += 1;
                 Sylas.addSimilarSubDomainToUI(subDomain, ip, data.get("time"));
                 psSQL.setString(1, subDomain);
@@ -596,6 +609,7 @@ public class DbUtil {
         }
     }
 
+
     /**
      * 获取项目的Set
      * @return
@@ -762,6 +776,46 @@ public class DbUtil {
             BurpExtender.getStderr().println("无法获取相似url:"+e);
         }
         return urlMap;
+    }
+
+    public HashMap<String, HashMap<String, String>> getWebMap(HashSet<String> subDomains){
+        HashMap<String, HashMap<String, String>> webMap = new HashMap<>();
+        StringBuilder where = new StringBuilder();
+        for (String subDomain : subDomains) {
+            where.append(" or url like '%").append(subDomain).append("%'");
+        }
+        String sql = "select * from web where 1=2 " + where;
+        ResultSet set;
+        try{
+            PreparedStatement preSQL = conn.prepareStatement(sql);
+            set = preSQL.executeQuery();
+            while(set.next()){
+                String url = set.getString("url");
+                String status = set.getString("status");
+                String title = set.getString("title");
+                String length = set.getString("length");
+                String application = set.getString("application");
+                String webserver = set.getString("webserver");
+                String framework = set.getString("framework");
+                String os = set.getString("os");
+                String description = set.getString("description");
+                String createTime = set.getString("createTime");
+                HashMap<String, String> web = new HashMap<>();
+                web.put("status", status);
+                web.put("title", title);
+                web.put("length", length);
+                web.put("application", application);
+                web.put("webserver", webserver);
+                web.put("framework", framework);
+                web.put("os", os);
+                web.put("description", description);
+                web.put("createTime", createTime);
+                webMap.put(url, web);
+            }
+        }catch (SQLException e){
+            BurpExtender.getStderr().println(e);
+        }
+        return webMap;
     }
 }
 

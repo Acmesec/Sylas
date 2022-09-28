@@ -31,6 +31,12 @@ public class Config {
         initDatabaseSetting.put("database","");
         return initDatabaseSetting;
     }
+
+    /**
+     * 使用udp协议去请求ip，这里会出现泄露原ip的情况，需要研究一下怎么通过代理去请求，并且配置代理。
+     * @param domain
+     * @return
+     */
     public static String getDomainIp(String domain) {
         try {
             return InetAddress.getByName(domain).getHostAddress();
@@ -40,7 +46,7 @@ public class Config {
     }
 
     public static Boolean isBuild(){
-        return sylasConfig.exists()&& sylasConfig.isFile();
+        return sylasConfig.exists() && sylasConfig.isFile();
     }
 
     public static Map<String,String> parseJson() {

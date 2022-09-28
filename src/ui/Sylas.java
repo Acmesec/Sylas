@@ -14,7 +14,6 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.IOException;
 import java.util.*;
-import java.util.Timer;
 import javax.swing.*;
 import javax.swing.table.*;
 
@@ -101,7 +100,6 @@ public class Sylas extends JPanel {
                 BurpExtender.config.put("database",database);
                 Config.writeJson(BurpExtender.config);
                 projectDoneAction(BurpExtender.config.get("currentProject"));
-                loadBscanDomainAlive(BurpExtender.config.get("currentProject"));
             }else{
                 connectDatabaseButton.setText("Status: Connect Failed");
             }
@@ -118,7 +116,6 @@ public class Sylas extends JPanel {
                 BurpExtender.config.put("currentProject", currentProject);
                 Config.writeJson(BurpExtender.config);
                 projectDoneAction(currentProject);
-                loadBscanDomainAlive(currentProject);
             }else{
                 JOptionPane.showMessageDialog(null,"Must select a project!","No Project",JOptionPane.ERROR_MESSAGE);
             }
@@ -150,10 +147,6 @@ public class Sylas extends JPanel {
         connectDatabaseButton.setText("Connect Database");
     }
 
-    private void copyAllUrls(ActionEvent e) {
-        // TODO add your code here
-    }
-
 
     private void initComponents() {
         // JFormDesigner - Component initialization - DO NOT MODIFY  //GEN-BEGIN:initComponents
@@ -168,27 +161,27 @@ public class Sylas extends JPanel {
         projectSetting = new JButton();
         rootDomainSetting = new JButton();
         label5 = new JLabel();
-        copyAllUrlsButton = new JButton();
-        copyAllDomainsButton = new JButton();
+//        copyAllUrlsButton = new JButton();
+//        copyAllDomainsButton = new JButton();
         tabbedPane1 = new JTabbedPane();
         panel1 = new JPanel();
         label6 = new JLabel();
         tabbedPane2 = new JTabbedPane();
         scrollPane3 = new JScrollPane();
-        urlTable = new JTable();
+        urlTable = new DataTable("Url");
         scrollPane5 = new JScrollPane();
-        domainAliveTable = new JTable();
+        domainAliveTable = new DataTable("BscanDomainAlive");
         scrollPane2 = new JScrollPane();
-        subDomainTable = new JTable();
+        subDomainTable = new DataTable("SubDomain");
         panel3 = new JPanel();
         label4 = new JLabel();
         tabbedPane3 = new JTabbedPane();
         scrollPane4 = new JScrollPane();
-        similarUrlsTable = new JTable();
+        similarUrlsTable = new DataTable("SimilarUrl");
         scrollPane6 = new JScrollPane();
-        similarDomainTable = new JTable();
+        similarDomainAliveTable = new DataTable("SimilarDomainAlive");
         scrollPane1 = new JScrollPane();
-        similarSubDomainTable = new JTable();
+        similarSubDomainTable = new DataTable("SimilarSubDomain");
 
         //======== this ========
         setLayout(new GridBagLayout());
@@ -273,18 +266,18 @@ public class Sylas extends JPanel {
                 GridBagConstraints.CENTER, GridBagConstraints.VERTICAL,
                 new Insets(0, 0, 0, 5), 0, 0));
 
-            //---- copyAllUrlsButton ----
-            copyAllUrlsButton.setText("Copy all Urls");
-            copyAllUrlsButton.addActionListener(e -> copyAllUrls(e));
-            panel2.add(copyAllUrlsButton, new GridBagConstraints(10, 0, 1, 1, 0.0, 0.0,
-                GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-                new Insets(0, 0, 0, 5), 0, 0));
-
-            //---- copyAllDomainsButton ----
-            copyAllDomainsButton.setText("Copy all Domains");
-            panel2.add(copyAllDomainsButton, new GridBagConstraints(11, 0, 1, 1, 0.0, 0.0,
-                GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-                new Insets(0, 0, 0, 0), 0, 0));
+//            //---- copyAllUrlsButton ----
+//            copyAllUrlsButton.setText("Copy all Urls");
+//            copyAllUrlsButton.addActionListener(e -> copyAllUrls(e));
+//            panel2.add(copyAllUrlsButton, new GridBagConstraints(10, 0, 1, 1, 0.0, 0.0,
+//                GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+//                new Insets(0, 0, 0, 5), 0, 0));
+//
+//            //---- copyAllDomainsButton ----
+//            copyAllDomainsButton.setText("Copy all Domains");
+//            panel2.add(copyAllDomainsButton, new GridBagConstraints(11, 0, 1, 1, 0.0, 0.0,
+//                GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+//                new Insets(0, 0, 0, 0), 0, 0));
         }
         add(panel2, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
             GridBagConstraints.CENTER, GridBagConstraints.BOTH,
@@ -407,8 +400,8 @@ public class Sylas extends JPanel {
                             @Override
                             public Class<?> getColumnClass(int column) { return getValueAt(0,column).getClass();}
                         };
-                        similarDomainTable.setModel(similarDomainAliveModel);
-                        scrollPane6.setViewportView(similarDomainTable);
+                        similarDomainAliveTable.setModel(similarDomainAliveModel);
+                        scrollPane6.setViewportView(similarDomainAliveTable);
                     }
                     tabbedPane3.addTab("DomainAlive", scrollPane6);
                 }
@@ -457,8 +450,8 @@ public class Sylas extends JPanel {
     public static void addSimilarUrlToUI(String url, String time){
         similarUrlModel.addRow(new Object[]{BurpExtender.similarUrlCount, url, time});
     }
-    public static void addAliveDomainToUI(String url,String title,String status, String rootDomain){
-        domainAliveModel.addRow(new Object[]{BurpExtender.subDomainBscanAliveCount,url,title,status,rootDomain});
+    public static void addAliveDomainToUI(String url,String title,String status, String length, String time){
+        domainAliveModel.addRow(new Object[]{BurpExtender.subDomainBscanAliveCount,url,title,status,Integer.parseInt(length),time});
     }
     public static void addAliveSimilarDomainToUI(String url,String title,String status, String rootDomain){
         similarDomainAliveModel.addRow(new Object[]{BurpExtender.subDomainBscanAliveCount,url,title,status,rootDomain});
@@ -480,6 +473,11 @@ public class Sylas extends JPanel {
             similarSubDomainModel.setColumnIdentifiers(SUB_DOMAIN_COLUMN_FIELDS);
             similarSubDomainModel.setRowCount(0);
         }
+        if(BurpExtender.webMap.size()>0){
+            BurpExtender.subDomainBscanAliveCount = 0;
+            domainAliveModel.setColumnIdentifiers(BSCAN_DOMAIN_ALIVE_DOMAIN_COLUMN_FIELDS);
+            domainAliveModel.setRowCount(0);
+        }
         if (BurpExtender.similarUrlCount > 0){
             BurpExtender.similarUrlCount = 0;
             similarUrlModel.setColumnIdentifiers(URL_COLUMN_FIELDS);
@@ -489,43 +487,6 @@ public class Sylas extends JPanel {
         resizeColumnWidth(similarSubDomainTable,similarUrlsTable);
     }
 
-    /**
-     * 从数据库中拉取Bscan的数据，重载一次数据。
-     * @param currentProject
-     */
-    public void loadBscanDomainAlive(String currentProject){
-        if(!"".equals(currentProject)){
-            if(BurpExtender.db.projectExist(currentProject)){
-                if (BurpExtender.subDomainBscanAliveCount >0){
-                    BurpExtender.subDomainBscanAliveCount = 0;
-                    domainAliveModel.setColumnIdentifiers(BSCAN_DOMAIN_ALIVE_DOMAIN_COLUMN_FIELDS);
-                    domainAliveModel.setRowCount(0);
-                }
-                if (BurpExtender.similarSubDomainBscanAliveCount >0){
-                    BurpExtender.similarSubDomainBscanAliveCount = 0;
-                    similarDomainAliveModel.setColumnIdentifiers(BSCAN_DOMAIN_ALIVE_DOMAIN_COLUMN_FIELDS);
-                    similarDomainAliveModel.setRowCount(0);
-                }
-                // 判断连接模式，为MYSQL时才可以用这个功能
-                if(BurpExtender.db.mode == DbUtil.MYSQL_DB){
-                    if(BurpExtender.db.bscanReady){
-                        BurpExtender.subDomainBscanAliveMap = BurpExtender.db.getSubDomainAlive(currentProject);
-                        BurpExtender.similarSubDomainBscanAliveMap = BurpExtender.db.getSimilarSubDomainAlive(currentProject);
-                        for(Map.Entry<String, HashMap<String, String>> entry: BurpExtender.subDomainBscanAliveMap.entrySet()){
-                            BurpExtender.subDomainBscanAliveCount += 1;
-                            HashMap<String, String> value = entry.getValue();
-                            addAliveDomainToUI(entry.getKey(), value.get("title"),value.get("status"),value.get("rootDomain"));
-                        }
-                        for(Map.Entry<String, HashMap<String, String>> entry: BurpExtender.similarSubDomainBscanAliveMap.entrySet()){
-                            BurpExtender.similarSubDomainBscanAliveCount += 1;
-                            HashMap<String, String> value = entry.getValue();
-                            addAliveSimilarDomainToUI(entry.getKey(), value.get("title"),value.get("status"),value.get("rootDomain"));
-                        }
-                    }
-                }
-            }
-        }
-    }
     /**
      * 自适应宽度
      */
@@ -598,6 +559,9 @@ public class Sylas extends JPanel {
                     BurpExtender.urlMap = BurpExtender.db.getUrlMap(currentProject);
                     BurpExtender.similarSubDomainMap = BurpExtender.db.getSimilarSubDomainMap(currentProject);
                     BurpExtender.similarUrlMap = BurpExtender.db.getSimilarUrlMap(currentProject);
+                    if(BurpExtender.db.mode == DbUtil.MYSQL_DB){
+                        BurpExtender.webMap = BurpExtender.db.getWebMap(BurpExtender.currentRootDomainSet);
+                    }
                     for(Map.Entry<String, String> entry: BurpExtender.urlMap.entrySet()){
                         BurpExtender.urlCount += 1;
                         String createTime = entry.getValue();
@@ -618,6 +582,11 @@ public class Sylas extends JPanel {
                         HashMap<String, String> value = entry.getValue();
                         addSimilarSubDomainToUI(entry.getKey(), value.get("ipAddress"), value.get("createTime"));
                     }
+                    for(Map.Entry<String, HashMap<String, String>> entry: BurpExtender.webMap.entrySet()){
+                        HashMap<String, String> value = entry.getValue();
+                        BurpExtender.subDomainBscanAliveCount += 1;
+                        addAliveDomainToUI(entry.getKey(), value.get("title"), value.get("status"), value.get("length"), value.get("createTime"));
+                    }
                 }
             }
         }
@@ -626,13 +595,6 @@ public class Sylas extends JPanel {
         if(autoConnectDatabaseByConfig()){
             String currentProject = BurpExtender.config.get("currentProject");
             projectDoneAction(currentProject);
-            TimerTask timerTask = new TimerTask() {
-                @Override
-                public void run() {
-                    loadBscanDomainAlive(BurpExtender.config.get("currentProject"));
-                }
-            };
-            new Timer().schedule(timerTask,0L,60*1000L);
         }
     }
 
@@ -648,27 +610,29 @@ public class Sylas extends JPanel {
     private JButton projectSetting;
     private JButton rootDomainSetting;
     private JLabel label5;
-    private JButton copyAllUrlsButton;
-    private JButton copyAllDomainsButton;
+    /*两个按钮不需要删掉，留着后续加功能用*/
+//    private JButton copyAllUrlsButton;
+//    private JButton copyAllDomainsButton;
     private JTabbedPane tabbedPane1;
     private JPanel panel1;
     private JLabel label6;
     private JTabbedPane tabbedPane2;
     private JScrollPane scrollPane3;
-    private JTable urlTable;
+    private DataTable urlTable;
     private JScrollPane scrollPane5;
-    private JTable domainAliveTable;
+    private DataTable domainAliveTable;
     private JScrollPane scrollPane2;
-    private JTable subDomainTable;
+    private DataTable subDomainTable;
     private JPanel panel3;
     private JLabel label4;
     private JTabbedPane tabbedPane3;
     private JScrollPane scrollPane4;
-    private JTable similarUrlsTable;
+    private DataTable similarUrlsTable;
     private JScrollPane scrollPane6;
-    private JTable similarDomainTable;
+    private DataTable similarDomainAliveTable;
     private JScrollPane scrollPane1;
-    private JTable similarSubDomainTable;
+    private JMenuItem menuItem = new JMenuItem("Export");
+    private DataTable similarSubDomainTable;
     // JFormDesigner - End of variables declaration  //GEN-END:variables
     private static DefaultTableModel subDomainModel;
     private static DefaultTableModel urlModel;
@@ -678,6 +642,6 @@ public class Sylas extends JPanel {
     private static DefaultTableModel similarDomainAliveModel;
     private static final String[] SUB_DOMAIN_COLUMN_FIELDS = {"#", "Domain", "IP", "Time"};
     private static final String[] URL_COLUMN_FIELDS = {"#", "URL", "Time"};
-    private static final String[] BSCAN_DOMAIN_ALIVE_DOMAIN_COLUMN_FIELDS = {"#","Domain","Title","Status","RootDomain"};
+    private static final String[] BSCAN_DOMAIN_ALIVE_DOMAIN_COLUMN_FIELDS = {"#","Url","Title","Status","Length", "Time"};
 
 }

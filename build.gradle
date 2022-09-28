@@ -1,4 +1,4 @@
-version '1.0.6'
+version '1.1.0'
 
 buildscript {
     ext.kotlin_version = '1.4.10'
@@ -25,7 +25,7 @@ jar {
     from {
         configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
     }
-    exclude 'META-INF/versions/9/*.class','META-INF/*.txt','META-INF/*/*'
+    exclude 'META-INF/versions/9/*.class','META-INF/*.txt','META-INF/*/*','META-INF/LICENSE','META-INF/NOTICE'
 }
 repositories {
     mavenCentral()
@@ -46,7 +46,7 @@ dependencies {
     compile group: 'org.apache.commons', name: 'commons-text', version: '1.9'
 // https://mvnrepository.com/artifact/org.xerial/sqlite-jdbc
     compile group: 'org.xerial', name: 'sqlite-jdbc', version: '3.36.0.3'
-
+    compile group: 'org.apache.poi', name: 'poi', version: '5.2.3'
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
 }
 

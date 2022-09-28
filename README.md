@@ -129,16 +129,20 @@ for(String s:BurpExtender.currentRootDomainSet){
 
 需要在[Bscan](https://github.com/broken5/bscan/tree/sylas)的配置文件里配置塞拉斯的数据库信息，随后按照readme中的方法启动即可。
 
+
+
 #### Bscan配置
 
 ##### 0x00 初始化
 
+执行这条命令之后会报错且生成配置文件，之后每3分钟会读取MySQL中的数据执行存活扫描
+
 ```shell
 ./bscanSylas
 ```
-![](img/bscanConfigure_1.png)
+![image-20220928174605334](C:\Users\broke\Desktop\Sylas\img\bscanConfigure_1.png)
 
-执行这条命令之后会报错且生成配置文件
+
 
 ##### 0x01 修改Config.yml文件
 
@@ -146,7 +150,7 @@ for(String s:BurpExtender.currentRootDomainSet){
 
 在sylas字段里修改关于塞拉斯数据库的配置。
 
-![](img/bscanConfigure_2.png)
+![image-20220928174415417](C:\Users\broke\Desktop\Sylas\img\bscanConfigure_2.png)
 
 ##### 0x02 启动
 

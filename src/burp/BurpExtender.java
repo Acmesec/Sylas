@@ -4,10 +4,7 @@ package burp;
 import java.awt.*;
 import java.io.File;
 import java.io.PrintWriter;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -17,6 +14,7 @@ import ui.Sylas;
 import ui.ControlSwitch;
 import utils.Config;
 import utils.DbUtil;
+import web.WebConsumer;
 
 public class BurpExtender implements IBurpExtender, ITab, IHttpListener{
 
@@ -29,6 +27,7 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener{
     public static HashMap<String,HashMap<String,String>> similarSubDomainBscanAliveMap = new HashMap<>();
 //    public static HashMap<String,HashMap<String,String>> similarDomainMap = new HashMap<>();
     public static HashMap<String,String> similarUrlMap = new HashMap<>();
+    public static HashMap<String, HashMap<String, String>> webMap = new HashMap<>();
     public static BlockingQueue<IHttpRequestResponse> inputQueue = new LinkedBlockingQueue<>();
     public static BlockingQueue<String> urlQueue = new LinkedBlockingQueue<>();
     public static BlockingQueue<String> subDomainQueue = new LinkedBlockingQueue<>();
@@ -40,13 +39,16 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener{
     public static int similarUrlCount = 0;
     public static int subDomainBscanAliveCount = 0;
     public static int similarSubDomainBscanAliveCount = 0;
+    public static String[] collectDataFromDomainList = new String[]{"baidu.com", "bing.com", "x.threatbook.com", "hunter.qianxin.com", "so.com", "360.cn"};
     public static DbUtil db;
     public static HashSet<String> currentRootDomainSet = new HashSet<>();
 //    public static HashSet<String> rootSimilarDomainSet = new HashSet<>();
     public static Map<String,String> config = Config.getInitDatabaseSetting();
     public static DomainConsumer domainConsumer = new DomainConsumer();
-    public static final String VERSION = "1.0.6";
+    public static WebConsumer webConsumer = new WebConsumer();
+    public static final String VERSION = "1.1.0";
     public static final String EXTENSION_NAME = "Sylas";
+
     @Override
     public void registerExtenderCallbacks(IBurpExtenderCallbacks callbacks){
         // TODO here
@@ -58,16 +60,24 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener{
         stdout.println("@Github: https://github.com/Acmesec/Sylas");
         // 判断是否为旧版本，如果是旧版本配置文件则重命名
         checkIsOldVersion();
-        if(Config.isBuild()){
-            config = Config.parseJson();
-            db = new DbUtil(Arrays.binarySearch(ControlSwitch.DB_SERVER,config.get("db_server")));
-        }else{
-            db = new DbUtil(0);
+        try {
+            if(Config.isBuild()){
+                config = Config.parseJson();
+                db = new DbUtil(Arrays.binarySearch(ControlSwitch.DB_SERVER,config.get("db_server")));
+                getStdout().println("setting file exists");
+            }else{
+                db = new DbUtil(DbUtil.SQLITE_DB);
+                getStdout().println("setting file don't exists");
+            }
+        }catch (Exception e){
+            getStderr().println(e);
         }
+
         callbacks.registerHttpListener(this);
         callbacks.addSuiteTab(this);
         //  消费者抓取域名入库 sleep=10s
         domainConsumer.start();
+        webConsumer.start();
     }
 
     /**
