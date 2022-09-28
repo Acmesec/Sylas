@@ -140,7 +140,7 @@ for(String s:BurpExtender.currentRootDomainSet){
 ```shell
 ./bscanSylas
 ```
-![image-20220928174605334](C:\Users\broke\Desktop\Sylas\img\bscanConfigure_1.png)
+![image-20220928174605334](img/bscanConfigure_1.png)
 
 
 
@@ -150,7 +150,7 @@ for(String s:BurpExtender.currentRootDomainSet){
 
 在sylas字段里修改关于塞拉斯数据库的配置。
 
-![image-20220928174415417](C:\Users\broke\Desktop\Sylas\img\bscanConfigure_2.png)
+![image-20220928174415417](img/bscanConfigure_2.png)
 
 ##### 0x02 启动
 
