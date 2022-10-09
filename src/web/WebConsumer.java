@@ -13,7 +13,7 @@ import java.util.HashMap;
 public class WebConsumer extends Thread {
     @Override
     public void run() {
-        if(BurpExtender.db.mode==DbUtil.MYSQL_DB){
+        if(BurpExtender.db.mode==DbUtil.MYSQL_DB && BurpExtender.db.isConnect){
             while(true){
                 try {
                     HashMap<String, HashMap<String, String>> newWebMap = BurpExtender.db.getWebMap(BurpExtender.currentRootDomainSet);

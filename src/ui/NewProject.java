@@ -52,6 +52,17 @@ public class NewProject extends JPanel {
                 }
                 break;
             case DOMAIN_MODE:
+                if(item.contains(",")){
+                    String[] arr = item.split(",");
+                    for (int i=0;i<arr.length;i++){
+                        if(!"".equals(arr[i]) && !BurpExtender.currentRootDomainSet.contains(arr[i]) && !list.contains(arr[i])){
+                            list.addElement(arr[i]);
+                            BurpExtender.currentRootDomainSet.add(arr[i]);
+                            BurpExtender.db.addRootDomain(BurpExtender.config.get("currentProject"), arr[i]);
+                        }
+                    }
+                    break;
+                }
                 if(!"".equals(item) && !BurpExtender.currentRootDomainSet.contains(item) && !list.contains(item)){
                     list.addElement(item);
                     BurpExtender.currentRootDomainSet.add(item);

@@ -46,7 +46,7 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener{
     public static Map<String,String> config = Config.getInitDatabaseSetting();
     public static DomainConsumer domainConsumer = new DomainConsumer();
     public static WebConsumer webConsumer = new WebConsumer();
-    public static final String VERSION = "1.1.0";
+    public static final String VERSION = "1.1.1";
     public static final String EXTENSION_NAME = "Sylas";
 
     @Override

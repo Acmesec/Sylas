@@ -103,97 +103,26 @@ public class DbUtil {
      * @param db
      */
     private void initMysql(String db){
-        HashMap<String, String> tables = new HashMap<String, String>(6){
-            {
-                //项目表
-                put("PROJECT","CREATE TABLE IF NOT EXISTS `Project` (\n" +
-                        "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
-                        "  `projectName` varchar(64) NOT NULL,\n" +
-                        "  PRIMARY KEY (`id`),\n" +
-                        "  UNIQUE KEY `Project_projectName_uindex` (`projectName`)\n" +
-                        "); CHARSET=utf8;");
-                //根域名表
-                put("ROOTDOMAIN","CREATE TABLE IF NOT EXISTS `RootDomain` (\n" +
-                        "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
-                        "  `rootDomainName` varchar(64) NOT NULL,\n" +
-                        "  `projectName` varchar(64) NOT NULL,\n" +
-                        "  PRIMARY KEY (`id`),\n" +
-                        "  UNIQUE KEY `RootDomain_domainName_uindex` (`rootDomainName`)\n" +
-                        "); CHARSET=utf8;");
-                //子域名表
-                put("SUBDOMAIN","CREATE TABLE IF NOT EXISTS `SubDomain` (\n" +
-                        "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
-                        "  `subDomainName` varchar(128) NOT NULL,\n" +
-                        "  `rootDomainName` varchar(64) DEFAULT NULL,\n" +
-                        "  `ipAddress` varchar(64) DEFAULT NULL,\n" +
-                        "  `createTime` datetime NOT NULL,\n" +
-                        "  `scanned` int default 0 null,\n" +
-                        "  PRIMARY KEY (`id`),\n" +
-                        "  UNIQUE KEY `SubDomain_subDomainName_uindex` (`subDomainName`)\n" +
-                        "); CHARSET=utf8;");
-                //url表
-                put("URL","CREATE TABLE IF NOT EXISTS `Url` (\n" +
-                        "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
-                        "  `url` varchar(256) NOT NULL,\n" +
-                        "  `projectName` varchar(64) NOT NULL,\n" +
-                        "  `createTime` datetime NOT NULL,\n" +
-                        "  PRIMARY KEY (`id`),\n" +
-                        "  UNIQUE KEY `Url_url_uindex` (`url`)\n" +
-                        "); CHARSET=utf8;");
-                //相似域名表
-                put("SIMILARSUBDOMAIN","CREATE TABLE IF NOT EXISTS `SimilarSubDomain`(\n" +
-                        "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
-                        "  `subDomainName` varchar(128) NOT NULL,\n" +
-                        "  `rootDomainName` varchar(64) DEFAULT NULL,\n" +
-                        "  `ipAddress` varchar(64) DEFAULT NULL,\n" +
-                        "  `createTime` datetime NOT NULL,\n" +
-                        "  `scanned` int default 0 null,\n" +
-                        "  PRIMARY KEY (`id`),\n" +
-                        "   UNIQUE KEY `SimilarSubDomain_similarDomainName_uindex` (`subDomainName`)\n" +
-                        "); CHARSET=utf8;");
-                //相似域名子域名表
-                put("SIMILARURL","CREATE TABLE IF NOT EXISTS `SimilarUrl`(\n" +
-                        "   `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
-                        "   `url` varchar(64) NOT NULL,\n" +
-                        "   `projectName` varchar(64) NOT NULL,\n" +
-                        "  `createTime` datetime NOT NULL,\n" +
-                        "   PRIMARY KEY (`id`),\n" +
-                        "   UNIQUE KEY `SimilarUrl_url_uindex` (`url`)\n" +
-                        "); CHARSET=utf8;");
-                put("WEB", "CREATE TABLE IF NOT EXISTS WEB (\n" +
-                        "    id int(11) AUTO_INCREMENT PRIMARY KEY,\n" +
-                        "    url varchar(256) UNIQUE,\n" +
-                        "    status varchar(64),\n" +
-                        "    title varchar(64),\n" +
-                        "    length varchar(64),\n" +
-                        "    application varchar(64),\n" +
-                        "    webserver varchar(64),\n" +
-                        "    framework varchar(64),\n" +
-                        "    os varchar(64),\n" +
-                        "    description varchar(64),\n" +
-                        "    createTime datetime not null\n"+
-                        ") CHARSET=utf8;");
-            }
-        };
+        HashMap<String, String> mysqlTables = getMysqlTableMap();
         String[] subDomainTables = new String[]{"SubDomain","SimilarSubDomain"};
-        for (String i:subDomainTables) {
-            scannedFiledIsAlert(i);
-        }
         try{
             ResultSet set = conn.getMetaData().getTables(db,null,"%",null);
             while (set.next()){
                 String table = set.getString("TABLE_NAME");
-                if("web".equals(table)){
+                if("Web".equals(table)){
                     this.bscanReady = true;
                     BurpExtender.getStdout().println("Bscan ready");
                 }
-                tables.remove(table.toUpperCase());
+                mysqlTables.remove(table.toUpperCase());
             }
-            for (String sql:tables.values()){
+            for (String sql:mysqlTables.values()){
                 conn.createStatement().executeLargeUpdate(sql);
             }
         }catch (SQLException e) {
             BurpExtender.getStderr().println("Mysql初始化失败:"+e);
+        }
+        for (String i:subDomainTables) {
+            scannedFiledIsAlert(i);
         }
     }
     /**
@@ -225,66 +154,15 @@ public class DbUtil {
      * @param db
      */
     private void initSqlite(String db){
-        HashMap<String, String> tables = new HashMap<String, String>(6){
-            {
-                put("Project","CREATE TABLE \"main\".\"Project\" (\n" +
-                        "  \"id\" integer NOT NULL,\n" +
-                        "  \"projectName\" TEXT,\n" +
-                        "  CONSTRAINT \"id\" PRIMARY KEY (\"id\")\n" +
-                        "  CONSTRAINT \"Project_projectName_uindex\" UNIQUE (\"projectName\")"+
-                        ");");
-                put("RootDomain","CREATE TABLE \"main\".\"RootDomain\" (\n" +
-                        "  \"id\" integer NOT NULL,\n" +
-                        "  \"rootDomainName\" TEXT,\n" +
-                        "  \"projectName\" TEXT,\n" +
-                        "  CONSTRAINT \"id\" PRIMARY KEY (\"id\")\n" +
-                        "  CONSTRAINT \"RootDomain_projectName_uindex\" UNIQUE (\"rootDomainName\")"+
-                        ");");
-                put("SubDomain","CREATE TABLE \"main\".\"SubDomain\" (\n" +
-                        "  \"id\" integer NOT NULL,\n" +
-                        "  \"subDomainName\" TEXT,\n" +
-                        "  \"rootDomainName\" TEXT,\n" +
-                        "  \"ipAddress\" TEXT,\n" +
-                        "  \"createTime\" TEXT,\n" +
-                        "  \"scan\" integers DEFAULT 0, \n" +
-                        "  CONSTRAINT \"id\" PRIMARY KEY (\"id\")\n" +
-                        "  CONSTRAINT \"SubDomain_projectName_uindex\" UNIQUE (\"subDomainName\")"+
-                        ");");
-                put("Url","CREATE TABLE \"main\".\"Url\" (\n" +
-                        "  \"id\" integer NOT NULL,\n" +
-                        "  \"url\" TEXT,\n" +
-                        "  \"projectName\" TEXT,\n" +
-                        "  \"createTime\" TEXT,\n" +
-                        "  CONSTRAINT \"id\" PRIMARY KEY (\"id\")\n" +
-                        "  CONSTRAINT \"Url_projectName_uindex\" UNIQUE (\"url\")"+
-                        ");");
-                put("SimilarSubDomain","CREATE TABLE \"main\".\"SimilarSubDomain\" (\n" +
-                        "  \"id\" integer NOT NULL,\n" +
-                        "  \"SubDomainName\" TEXT,\n" +
-                        "  \"rootDomainName\" TEXT,\n" +
-                        "  \"ipAddress\" TEXT,\n" +
-                        "  \"createTime\" TEXT,\n" +
-                        "  CONSTRAINT \"id\" PRIMARY KEY (\"id\")\n" +
-                        "  CONSTRAINT \"SimilarSubDomain_projectName_uindex\" UNIQUE (\"SubDomainName\")"+
-                        ");");
-                put("SimilarUrl","CREATE TABLE \"main\".\"SimilarUrl\" (\n" +
-                        "  \"id\" integer NOT NULL,\n" +
-                        "  \"url\" TEXT,\n" +
-                        "  \"projectName\" TEXT,\n" +
-                        "  \"createTime\" TEXT,\n" +
-                        "  CONSTRAINT \"id\" PRIMARY KEY (\"id\")\n" +
-                        "  CONSTRAINT \"SimilarUrl_projectName_uindex\" UNIQUE (\"url\")"+
-                        ");");
-            }
-        };
+        HashMap<String, String> sqliteTables = getSqliteTableMap();
         // 原先想要给sqlite增加检测url存活的功能，但是想了想实现有点麻烦。
         try{
             ResultSet set = conn.getMetaData().getTables(db,null,"%",null);
             while (set.next()){
                 String table = set.getString("TABLE_NAME");
-                tables.remove(table);
+                sqliteTables.remove(table);
             }
-            for (String sql:tables.values()){
+            for (String sql:sqliteTables.values()){
                 conn.createStatement().execute(sql);
             }
         }catch (SQLException e) {
@@ -784,7 +662,7 @@ public class DbUtil {
         for (String subDomain : subDomains) {
             where.append(" or url like '%").append(subDomain).append("%'");
         }
-        String sql = "select * from web where 1=2 " + where;
+        String sql = "select * from Web where 1=2 " + where;
         ResultSet set;
         try{
             PreparedStatement preSQL = conn.prepareStatement(sql);
@@ -817,5 +695,142 @@ public class DbUtil {
         }
         return webMap;
     }
+
+    public static HashMap<String, String> getMysqlTableMap(){
+        //项目表
+        HashMap<String, String> tables = new HashMap<>();
+        tables.put("Project","CREATE TABLE IF NOT EXISTS `Project` (\n" +
+                "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
+                "  `projectName` varchar(64) NOT NULL,\n" +
+                "  PRIMARY KEY (`id`),\n" +
+                "  UNIQUE KEY `Project_projectName_uindex` (`projectName`)\n" +
+                ") CHARSET=utf8;");
+        //根域名表
+        tables.put("RootDomain","CREATE TABLE IF NOT EXISTS `RootDomain` (\n" +
+                "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
+                "  `rootDomainName` varchar(64) NOT NULL,\n" +
+                "  `projectName` varchar(64) NOT NULL,\n" +
+                "  `scanned` int default 0 null,\n" +
+                "  PRIMARY KEY (`id`),\n" +
+                "  UNIQUE KEY `RootDomain_domainName_uindex` (`rootDomainName`)\n" +
+                ") CHARSET=utf8;");
+        //子域名表
+        tables.put("SubDomain","CREATE TABLE IF NOT EXISTS `SubDomain` (\n" +
+                "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
+                "  `subDomainName` varchar(128) NOT NULL,\n" +
+                "  `rootDomainName` varchar(64) DEFAULT NULL,\n" +
+                "  `ipAddress` varchar(64) DEFAULT NULL,\n" +
+                "  `createTime` datetime NOT NULL,\n" +
+                "  `scanned` int default 0 null,\n" +
+                "  PRIMARY KEY (`id`),\n" +
+                "  UNIQUE KEY `SubDomain_subDomainName_uindex` (`subDomainName`)\n" +
+                ") CHARSET=utf8;");
+        //url表
+        tables.put("Url","CREATE TABLE IF NOT EXISTS `Url` (\n" +
+                "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
+                "  `url` varchar(256) NOT NULL,\n" +
+                "  `projectName` varchar(64) NOT NULL,\n" +
+                "  `createTime` datetime NOT NULL,\n" +
+                "  PRIMARY KEY (`id`),\n" +
+                "  UNIQUE KEY `Url_url_uindex` (`url`)\n" +
+                ") CHARSET=utf8;");
+        //相似域名表
+        tables.put("SimilarSubDomain","CREATE TABLE IF NOT EXISTS `SimilarSubDomain`(\n" +
+                "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
+                "  `subDomainName` varchar(128) NOT NULL,\n" +
+                "  `rootDomainName` varchar(64) DEFAULT NULL,\n" +
+                "  `ipAddress` varchar(64) DEFAULT NULL,\n" +
+                "  `createTime` datetime NOT NULL,\n" +
+                "  `scanned` int default 0 null,\n" +
+                "  PRIMARY KEY (`id`),\n" +
+                "   UNIQUE KEY `SimilarSubDomain_similarDomainName_uindex` (`subDomainName`)\n" +
+                ") CHARSET=utf8;");
+        //相似域名子域名表
+        tables.put("SimilarUrl","CREATE TABLE IF NOT EXISTS `SimilarUrl`(\n" +
+                "   `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
+                "   `url` varchar(64) NOT NULL,\n" +
+                "   `projectName` varchar(64) NOT NULL,\n" +
+                "  `createTime` datetime NOT NULL,\n" +
+                "   PRIMARY KEY (`id`),\n" +
+                "   UNIQUE KEY `SimilarUrl_url_uindex` (`url`)\n" +
+                ") CHARSET=utf8;");
+        tables.put("Web", "CREATE TABLE IF NOT EXISTS Web (\n" +
+                "    id int(11) AUTO_INCREMENT PRIMARY KEY,\n" +
+                "    url varchar(256) UNIQUE,\n" +
+                "    status varchar(64),\n" +
+                "    title varchar(64),\n" +
+                "    length varchar(64),\n" +
+                "    application varchar(64),\n" +
+                "    webserver varchar(64),\n" +
+                "    framework varchar(64),\n" +
+                "    os varchar(64),\n" +
+                "    description varchar(64),\n" +
+                "    createTime datetime not null\n"+
+                ") CHARSET=utf8;");
+        return tables;
+    }
+
+    public static HashMap<String, String> getSqliteTableMap(){
+        HashMap<String, String> tables = new HashMap<String, String>(6){
+            {
+                put("Project","CREATE TABLE \"main\".\"Project\" (\n" +
+                        "  \"id\" integer NOT NULL,\n" +
+                        "  \"projectName\" TEXT,\n" +
+                        "  CONSTRAINT \"id\" PRIMARY KEY (\"id\")\n" +
+                        "  CONSTRAINT \"Project_projectName_uindex\" UNIQUE (\"projectName\")"+
+                        ");");
+                put("RootDomain","CREATE TABLE \"main\".\"RootDomain\" (\n" +
+                        "  \"id\" integer NOT NULL,\n" +
+                        "  \"rootDomainName\" TEXT,\n" +
+                        "  \"projectName\" TEXT,\n" +
+                        "  CONSTRAINT \"id\" PRIMARY KEY (\"id\")\n" +
+                        "  CONSTRAINT \"RootDomain_projectName_uindex\" UNIQUE (\"rootDomainName\")"+
+                        ");");
+                put("SubDomain","CREATE TABLE \"main\".\"SubDomain\" (\n" +
+                        "  \"id\" integer NOT NULL,\n" +
+                        "  \"subDomainName\" TEXT,\n" +
+                        "  \"rootDomainName\" TEXT,\n" +
+                        "  \"ipAddress\" TEXT,\n" +
+                        "  \"createTime\" TEXT,\n" +
+                        "  \"scan\" integers DEFAULT 0, \n" +
+                        "  CONSTRAINT \"id\" PRIMARY KEY (\"id\")\n" +
+                        "  CONSTRAINT \"SubDomain_projectName_uindex\" UNIQUE (\"subDomainName\")"+
+                        ");");
+                put("Url","CREATE TABLE \"main\".\"Url\" (\n" +
+                        "  \"id\" integer NOT NULL,\n" +
+                        "  \"url\" TEXT,\n" +
+                        "  \"projectName\" TEXT,\n" +
+                        "  \"createTime\" TEXT,\n" +
+                        "  CONSTRAINT \"id\" PRIMARY KEY (\"id\")\n" +
+                        "  CONSTRAINT \"Url_projectName_uindex\" UNIQUE (\"url\")"+
+                        ");");
+                put("SimilarSubDomain","CREATE TABLE \"main\".\"SimilarSubDomain\" (\n" +
+                        "  \"id\" integer NOT NULL,\n" +
+                        "  \"SubDomainName\" TEXT,\n" +
+                        "  \"rootDomainName\" TEXT,\n" +
+                        "  \"ipAddress\" TEXT,\n" +
+                        "  \"createTime\" TEXT,\n" +
+                        "  CONSTRAINT \"id\" PRIMARY KEY (\"id\")\n" +
+                        "  CONSTRAINT \"SimilarSubDomain_projectName_uindex\" UNIQUE (\"SubDomainName\")"+
+                        ");");
+                put("SimilarUrl","CREATE TABLE \"main\".\"SimilarUrl\" (\n" +
+                        "  \"id\" integer NOT NULL,\n" +
+                        "  \"url\" TEXT,\n" +
+                        "  \"projectName\" TEXT,\n" +
+                        "  \"createTime\" TEXT,\n" +
+                        "  CONSTRAINT \"id\" PRIMARY KEY (\"id\")\n" +
+                        "  CONSTRAINT \"SimilarUrl_projectName_uindex\" UNIQUE (\"url\")"+
+                        ");");
+            }
+        };
+        return tables;
+    }
+
+
+    public static void main(String[] args) {
+        HashMap<String, String> mysql = getMysqlTableMap();
+        System.out.println(mysql);
+    }
+
 }
 
